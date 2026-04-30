@@ -14,6 +14,8 @@ This repository is a small typed Python package. Keep changes narrow, tested, an
 ```text
 pykrtourapi/
 ├── client.py       # public client methods and response parsing
+├── hub.py          # catalog-aware generic client for all official TourAPI services
+├── services.py     # downloaded manual catalog distilled into service definitions
 ├── _http.py        # requests session, TourAPI envelope, error mapping
 ├── _convert.py     # small conversion helpers
 ├── _time.py        # KST timestamp parsing
@@ -29,6 +31,8 @@ pykrtourapi/
 - Use fake sessions or `responses` for HTTP behavior.
 - Live tests require `@pytest.mark.live` and `KTO_SERVICE_KEY`.
 - Do not assert unstable real tourism data values in live tests; assert shape and types only.
+- Keep `TourApiHubClient` tests catalog-driven; do not call the real 27 services in default tests.
+- Keep official manual ZIP/DOCX downloads in `.manuals/`, never in git.
 
 ## Verification commands
 

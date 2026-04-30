@@ -5,11 +5,12 @@
 기본 대상은 공공데이터포털의 **한국관광공사_국문 관광정보서비스_GW**이며, 현재 기본 서비스 URL은 `http://apis.data.go.kr/B551011/KorService2`입니다. 공식 문서 기준으로 지역/위치/키워드/행사/숙박/상세/이미지/동기화/코드 조회 계열을 우선 지원합니다.
 
 > 확인 기준일: 2026-04-30  
-> 공식 근거: [공공데이터포털 국문 관광정보서비스_GW](https://www.data.go.kr/en/data/15101578/openapi.do), [2026-01-09 TourAPI URL/입출력 변경 공지](https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000004471)
+> 공식 근거: [공공데이터포털 국문 관광정보서비스_GW](https://www.data.go.kr/en/data/15101578/openapi.do), [한국관광콘텐츠랩 OpenAPI 활용신청 목록](https://api.visitkorea.or.kr/#/useUtilExercises), [2026-01-09 TourAPI URL/입출력 변경 공지](https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000004471)
 
 ## 특징
 
 - `KorService2` 기본 지원: `areaBasedList2`, `locationBasedList2`, `searchKeyword2`, `searchFestival2`, `searchStay2`, 상세/이미지/코드 조회
+- `TourApiHubClient`로 한국관광콘텐츠랩 OpenAPI 목록의 27개 서비스/전체 operation 호출 지원
 - `Page[T]`와 frozen dataclass 모델 반환
 - `items.item`이 단일 object 또는 list로 오는 차이를 내부에서 정규화
 - `resultCode`, HTTP status, XML 형태 서비스키 오류를 typed exception으로 매핑
@@ -60,6 +61,31 @@ detail = client.detail_common(page.items[0].content_id)
 print(detail.overview)
 ```
 
+## 전체 OpenAPI Hub 호출
+
+`api.visitkorea.or.kr/#/useUtilExercises`의 메뉴얼 27개 기준 전체 서비스는 `TourApiHubClient`로 호출합니다. 서비스별 파라미터는 메뉴얼 원문 이름을 그대로 전달하고, 결과는 공통 `Page[Mapping]`으로 받습니다.
+
+```python
+from pykrtourapi import TourApiHubClient
+
+hub = TourApiHubClient.from_env(mobile_app="my-travel-app")
+
+# 고캠핑
+camping = hub.gocamping.based_list(facltNm="숲")
+
+# 관광사진
+photos = hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
+
+# 지역별 관광 자원 수요
+demand = hub.area_resource_demand.area_tar_svc_dem_list(
+    baseYm="202509",
+    areaCd="11",
+    signguCd="11530",
+)
+```
+
+전체 서비스 key와 operation은 [docs/openapi-catalog.md](docs/openapi-catalog.md)에 정리했습니다.
+
 위치 기반 조회:
 
 ```python
@@ -103,6 +129,17 @@ for code in client.classification_system_codes(list_yn=True).items:
 | `legal_dong_codes()` | `ldongCode2` | `Page[CodeItem]` |
 | `classification_system_codes()` | `lclsSystmCode2` | `Page[CodeItem]` |
 | `raw_endpoint()` | 임의 endpoint | `Page[Mapping]` |
+
+## 전체 서비스 카탈로그
+
+`TourApiHubClient.services` 또는 `SERVICE_DEFINITIONS`에서 공식 목록 기반 서비스 정의를 확인할 수 있습니다.
+
+```python
+from pykrtourapi import SERVICE_DEFINITIONS
+
+for service in SERVICE_DEFINITIONS:
+    print(service.key, service.service_name, service.operations)
+```
 
 ## 다른 언어 서비스
 

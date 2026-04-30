@@ -21,8 +21,12 @@ Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public beh
 8. Preserve unknown API fields in model `raw`.
 9. Normalize `items.item` whether it is missing, a single object, or a list.
 10. Service-key errors can arrive as XML even when `_type=json`.
+11. `TourApiHubClient` covers every service listed in `api.visitkorea.or.kr/#/useUtilExercises`.
+12. Downloaded official manual ZIP/DOCX files stay in `.manuals/` and are never committed.
 
 ## Supported endpoints
+
+`KrTourApiClient` exposes typed wrappers for the common `KorService2` endpoints below.
 
 | Public method | Endpoint |
 |---|---|
@@ -40,6 +44,15 @@ Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public beh
 | `category_codes()` | `categoryCode2` |
 | `legal_dong_codes()` | `ldongCode2` |
 | `classification_system_codes()` | `lclsSystmCode2` |
+
+All other official services are exposed through `TourApiHubClient` and `SERVICE_DEFINITIONS`.
+Operations can be called by the manual's camelCase name or a unique snake_case alias:
+
+```python
+hub = TourApiHubClient.from_env()
+hub.gocamping.based_list(facltNm="숲")
+hub.call("photo_gallery", "gallerySearchList1", galSearchKeyword="서울")
+```
 
 ## Required deliverables for behavior changes
 
@@ -74,5 +87,8 @@ Default tests should cover:
 - dependent parameter validation
 - dataclass conversion
 - CLI output serialization
+- service catalog count/aliases
+- generic Hub client routing
+- Pythonic parameter alias conversion
 
 Live tests, if added, must be marked `live` and skip when `KTO_SERVICE_KEY` is absent.

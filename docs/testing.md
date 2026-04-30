@@ -28,6 +28,9 @@ mypy pykrtourapi
 - 법정동/분류체계/카테고리 의존성 검증
 - 주요 dataclass 변환
 - CLI JSON 직렬화
+- 전체 OpenAPI 카탈로그 개수와 서비스 alias
+- `TourApiHubClient`의 service/operation 동적 라우팅과 snake_case operation alias
+- Hub 요청의 Pythonic parameter alias(`content_id` -> `contentId` 등)
 
 ## Live test 규칙
 

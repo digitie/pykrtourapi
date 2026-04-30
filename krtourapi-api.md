@@ -7,8 +7,11 @@
 - [공공데이터포털 한국관광공사_국문 관광정보서비스_GW](https://www.data.go.kr/en/data/15101578/openapi.do)
 - [공공데이터포털 2026-01-09 TourAPI 오퍼레이션 URL/입출력 변경 공지](https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000004471)
 - [TourAPI 관광데이터 Hub](https://api.visitkorea.or.kr)
+- [한국관광콘텐츠랩 OpenAPI 활용신청 목록](https://api.visitkorea.or.kr/#/useUtilExercises)
 
 공공데이터포털 문서에는 국문 관광정보서비스가 JSON+XML REST API이며, 약 26만 건의 국내 관광정보를 15종 범주로 제공한다고 안내되어 있다. 기본 요청 링크는 `http://apis.data.go.kr/B551011/KorService2/{operation}` 형식이다.
+
+`api.visitkorea.or.kr/#/useUtilExercises`의 전체 활용신청 목록은 27개 서비스 ZIP 메뉴얼을 기준으로 `pykrtourapi.services.SERVICE_DEFINITIONS`에 반영한다. `KrTourApiClient`는 자주 쓰는 `KorService2`용 typed wrapper이고, 나머지 서비스와 모든 operation은 `TourApiHubClient`가 카탈로그 기반 generic wrapper로 제공한다.
 
 ## 공통 요청
 
@@ -22,6 +25,8 @@
 | `numOfRows` | 1~1000 |
 
 ## 구현 endpoint
+
+### Typed KorService2 wrapper
 
 | 메서드 | endpoint | 핵심 요청 |
 |---|---|---|
@@ -39,6 +44,22 @@
 | `category_codes` | `categoryCode2` | `contentTypeId`, `cat1`, `cat2`, `cat3` |
 | `legal_dong_codes` | `ldongCode2` | `lDongRegnCd`, `lDongListYn` |
 | `classification_system_codes` | `lclsSystmCode2` | `lclsSystm1/2/3`, `lclsSystmListYn` |
+
+### 전체 OpenAPI generic wrapper
+
+`TourApiHubClient`는 메뉴얼 목록의 서비스명과 operation명을 그대로 사용한다. Python에서는 camelCase operation을 snake_case alias로도 호출할 수 있다.
+
+```python
+from pykrtourapi import TourApiHubClient
+
+hub = TourApiHubClient.from_env()
+
+hub.gocamping.based_list(facltNm="숲")
+hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
+hub.call("area_resource_demand", "areaTarSvcDemList", baseYm="202509", areaCd="11")
+```
+
+서비스 key, service name, alias, operation 목록은 `docs/openapi-catalog.md`와 `SERVICE_DEFINITIONS`가 단일 기준이다. 메뉴얼 ZIP 원본은 `.manuals/`에 다운로드해 분석하되 저장소에는 커밋하지 않는다.
 
 ## 코드 체계
 

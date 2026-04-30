@@ -11,6 +11,7 @@ from .exceptions import (
     TourApiRequestError,
     TourApiServerError,
 )
+from .hub import TourApiHubClient, TourApiServiceClient
 from .models import (
     CodeItem,
     ImageInfo,
@@ -20,6 +21,7 @@ from .models import (
     TourDetail,
     TourItem,
 )
+from .services import SERVICE_BY_KEY, SERVICE_DEFINITIONS, ServiceDefinition
 
 __all__ = [
     "Arrange",
@@ -41,4 +43,9 @@ __all__ = [
     "TourApiServerError",
     "TourDetail",
     "TourItem",
+    "TourApiHubClient",
+    "TourApiServiceClient",
+    "SERVICE_DEFINITIONS",
+    "SERVICE_BY_KEY",
+    "ServiceDefinition",
 ]

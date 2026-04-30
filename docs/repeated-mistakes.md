@@ -71,3 +71,23 @@
 **규칙:** 공통 필드만 모델에 올리고, 변동 필드는 `raw`로 보존한다.
 
 **가드레일:** `IntroInfo.raw`, `RepeatInfo.raw`를 유지한다.
+
+## 국문 `KorService2`만 구현하고 전체 OpenAPI라고 말하기
+
+**실수:** `api.visitkorea.or.kr/#/useUtilExercises`에는 27개 서비스가 있는데, 자주 쓰는 국문 관광정보서비스만 보고 “전체 구현”으로 착각한다.
+
+**증상:** 고캠핑, 관광사진, 오디, 데이터랩, 반려동물, 의료/웰니스, 지역 수요 계열 서비스를 호출할 방법이 없다.
+
+**규칙:** typed wrapper는 `KorService2`에 집중하되, 전체 OpenAPI 지원은 `SERVICE_DEFINITIONS`와 `TourApiHubClient`가 책임진다. 메뉴얼 목록이 바뀌면 카탈로그 테스트를 먼저 갱신한다.
+
+**가드레일:** `test_catalog_contains_all_manual_services`, `test_hub_call_by_service_key_and_operation_alias`.
+
+## 메뉴얼 ZIP 원본을 저장소에 커밋하기
+
+**실수:** 공식 메뉴얼 ZIP/DOCX를 분석용으로 내려받은 뒤 그대로 git에 올린다.
+
+**증상:** 저장소가 불필요하게 커지고, 외부 원문 파일의 라이선스/갱신 이력을 패키지 릴리스와 섞어 버린다.
+
+**규칙:** 원본은 `.manuals/`에만 내려받고 `.gitignore`로 제외한다. 재현이 필요하면 `scripts/download_visitkorea_manuals.ps1`를 사용한다.
+
+**가드레일:** `.manuals/`는 gitignore에 유지하고, 문서에는 원본 URL과 다운로드 절차만 남긴다.
