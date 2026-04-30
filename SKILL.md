@@ -1,0 +1,78 @@
+---
+name: krtourapi-python-builder
+description: Use this skill when building, extending, debugging, or documenting pykrtourapi, a Python client for Korea Tourism Organization TourAPI on data.go.kr.
+---
+
+# KRTourAPI Python Library Builder
+
+You are helping build and maintain `pykrtourapi`, a Python client for Korea Tourism Organization TourAPI.
+
+Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public behavior.
+
+## Project invariants
+
+1. Default service is `KorService2`.
+2. Default base URL is `http://apis.data.go.kr/B551011`.
+3. Auth parameter is `serviceKey`.
+4. Public examples assume a Decoding service key because requests are made with `params=`.
+5. Always request `_type=json`.
+6. Always include `MobileOS` and `MobileApp`.
+7. Default tests must not call the real API.
+8. Preserve unknown API fields in model `raw`.
+9. Normalize `items.item` whether it is missing, a single object, or a list.
+10. Service-key errors can arrive as XML even when `_type=json`.
+
+## Supported endpoints
+
+| Public method | Endpoint |
+|---|---|
+| `area_based_list()` | `areaBasedList2` |
+| `location_based_list()` | `locationBasedList2` |
+| `search_keyword()` | `searchKeyword2` |
+| `search_festival()` | `searchFestival2` |
+| `search_stay()` | `searchStay2` |
+| `detail_common()` | `detailCommon2` |
+| `detail_intro()` | `detailIntro2` |
+| `detail_info()` | `detailInfo2` |
+| `detail_images()` | `detailImage2` |
+| `area_based_sync_list()` | `areaBasedSyncList2` |
+| `area_codes()` | `areaCode2` |
+| `category_codes()` | `categoryCode2` |
+| `legal_dong_codes()` | `ldongCode2` |
+| `classification_system_codes()` | `lclsSystmCode2` |
+
+## Required deliverables for behavior changes
+
+- Update `README.md` for user-facing API changes.
+- Update `krtourapi-api.md` for endpoint, parameter, response, or official-doc changes.
+- Update `docs/testing.md` when test policy changes.
+- Update `docs/troubleshooting.md` when adding a known fix.
+- Update `docs/repeated-mistakes.md` when preventing a recurring mistake.
+- Add offline tests before live tests.
+- Keep `CHANGELOG.md` current.
+
+## Guardrails
+
+- Do not pass `sigunguCode` without `areaCode`.
+- Do not pass `cat2` without `cat1`, or `cat3` without `cat1` and `cat2`.
+- Do not pass `lDongSignguCd` without `lDongRegnCd`.
+- Do not pass `lclsSystm2` without `lclsSystm1`, or `lclsSystm3` without `lclsSystm1` and `lclsSystm2`.
+- Do not assume response timestamps are timezone-free; parse TourAPI timestamps as KST.
+- Do not crash on optional numeric fields. Use `None` when conversion is unsafe.
+- Do not expose raw `KeyError` or `TypeError`; convert response-shape issues into `TourApiParseError`.
+
+## Testing requirements
+
+Default tests should cover:
+
+- request parameter shape
+- common params (`serviceKey`, `MobileOS`, `MobileApp`, `_type=json`)
+- result-code exception mapping
+- XML service-key error mapping
+- `items.item` as single object and list
+- empty results
+- dependent parameter validation
+- dataclass conversion
+- CLI output serialization
+
+Live tests, if added, must be marked `live` and skip when `KTO_SERVICE_KEY` is absent.
