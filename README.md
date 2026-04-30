@@ -41,6 +41,13 @@ $env:KTO_SERVICE_KEY="발급받은_decoding_인증키"
 
 대체 환경변수로 `KRTOURAPI_SERVICE_KEY`, `TOURAPI_SERVICE_KEY`도 읽습니다.
 
+로컬 live test를 돌릴 때는 저장소에 커밋되지 않는 `.env.local`을 사용할 수 있습니다.
+
+```powershell
+Set-Content .env.local 'KTO_SERVICE_KEY=발급받은_decoding_인증키'
+.\scripts\run_live_tests.ps1
+```
+
 ## 사용 예시
 
 ```python
@@ -170,7 +177,7 @@ ruff check .
 mypy pykrtourapi
 ```
 
-기본 테스트는 실제 TourAPI를 호출하지 않습니다. live test를 추가할 때는 `@pytest.mark.live`를 붙이고 `KTO_SERVICE_KEY`가 없으면 skip 해야 합니다.
+기본 테스트는 실제 TourAPI를 호출하지 않습니다. live test를 추가할 때는 `@pytest.mark.live`를 붙이고 `KTO_SERVICE_KEY`가 없으면 skip 해야 합니다. 로컬 키 파일은 `.env.local`에만 두며, `.env*`는 gitignore 대상입니다.
 
 자세한 구현 규칙은 [krtourapi-api.md](krtourapi-api.md), 반복 실수 방지 문서는 [docs/repeated-mistakes.md](docs/repeated-mistakes.md), 테스트 정책은 [docs/testing.md](docs/testing.md)를 참고하세요.
 

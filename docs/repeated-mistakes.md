@@ -91,3 +91,23 @@
 **규칙:** 원본은 `.manuals/`에만 내려받고 `.gitignore`로 제외한다. 재현이 필요하면 `scripts/download_visitkorea_manuals.ps1`를 사용한다.
 
 **가드레일:** `.manuals/`는 gitignore에 유지하고, 문서에는 원본 URL과 다운로드 절차만 남긴다.
+
+## 인증키를 테스트 코드나 커밋에 남기기
+
+**실수:** 실 서버 테스트를 빠르게 돌리려고 인증키를 테스트 파일, README 예시, shell script 기본값에 직접 넣는다.
+
+**증상:** 키가 git history에 남고, 원격 저장소나 패키지 배포본에 노출된다.
+
+**규칙:** 인증키는 `.env.local` 또는 현재 shell 환경변수에만 둔다. `.env*`는 gitignore에 유지하고, 커밋 전 `git status --ignored .env.local`로 추적되지 않는지 확인한다.
+
+**가드레일:** `scripts/run_live_tests.ps1`는 `.env.local`을 읽기만 하며, live test는 `KTO_SERVICE_KEY`가 없으면 skip한다.
+
+## 실 서버 응답 코드를 문서 예시 `00`만 정상으로 보기
+
+**실수:** 정상 응답을 `resultCode=00`만 허용한다.
+
+**증상:** 실제 국문 `areaCode2` 응답처럼 `resultCode=0000`이 오면 성공인데도 오류로 처리한다.
+
+**규칙:** `00`, `0000`, `0`, `NORMAL_CODE`는 모두 정상 코드로 본다.
+
+**가드레일:** `test_result_code_0000_is_treated_as_success`, `test_live_korean_area_codes_returns_tourapi_shape`.

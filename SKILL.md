@@ -23,6 +23,8 @@ Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public beh
 10. Service-key errors can arrive as XML even when `_type=json`.
 11. `TourApiHubClient` covers every service listed in `api.visitkorea.or.kr/#/useUtilExercises`.
 12. Downloaded official manual ZIP/DOCX files stay in `.manuals/` and are never committed.
+13. Secrets stay in local `.env.local` or shell environment only; never commit API keys.
+14. Treat `resultCode=0000` as success, and keep a browser-compatible User-Agent for live TourAPI calls.
 
 ## Supported endpoints
 
@@ -92,3 +94,4 @@ Default tests should cover:
 - Pythonic parameter alias conversion
 
 Live tests, if added, must be marked `live` and skip when `KTO_SERVICE_KEY` is absent.
+Use `scripts/run_live_tests.ps1` to load `.env.local`; do not hard-code keys in tests.

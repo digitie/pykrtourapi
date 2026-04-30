@@ -48,3 +48,14 @@ def test_live_area_codes():
 ```
 
 live test에서는 관광지 이름, 총 건수, 정렬 순서처럼 변하기 쉬운 값을 단정하지 않는다. 응답 shape, 타입, 필수 공통 필드만 확인한다.
+
+로컬에서 실 서버 테스트를 실행할 때는 `.env.local`에 `KTO_SERVICE_KEY=...`를 넣고 아래 스크립트를 사용한다. `.env.local`은 커밋하지 않는다.
+
+```powershell
+.\scripts\run_live_tests.ps1
+```
+
+현재 live 테스트는 두 가지를 확인한다.
+
+- 신청된 국문 `KorService2`의 `areaCode2`가 실제 서버에서 정상 shape로 응답하는지
+- 신청하지 않은 영문 `EngService2`가 HTTP 403 또는 인증/권한 오류로 매핑되는지

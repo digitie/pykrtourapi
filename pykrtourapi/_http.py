@@ -32,12 +32,17 @@ class SessionLike(Protocol):
 
 
 TRANSIENT_STATUSES = {429, 500, 502, 503, 504}
+DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (compatible; pykrtourapi/0.1; "
+    "+https://github.com/digitie/pykrtourapi)"
+)
 
 
 def build_session(retries: int = 3) -> SessionLike:
     """Build a requests session with conservative GET retries."""
 
     session = requests.Session()
+    session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
     if retries <= 0:
         return cast(SessionLike, session)
 
@@ -135,7 +140,7 @@ def _extract_body(payload: Any) -> Mapping[str, Any]:
     code = str(header.get("resultCode", "")).strip()
     message = str(header.get("resultMsg", "")).strip()
     body = response.get("body", {})
-    if code in {"00", "0", "NORMAL_CODE", ""}:
+    if code in {"00", "0000", "0", "NORMAL_CODE", ""}:
         if not isinstance(body, Mapping):
             raise TourApiParseError("TourAPI response.body was not an object")
         return body

@@ -1,4 +1,7 @@
 .coverage
+.env
+.env.*
+!.env.example
 .manuals/
 .mypy_cache/
 .pytest_cache/

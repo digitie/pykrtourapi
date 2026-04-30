@@ -24,6 +24,8 @@
 | `pageNo` | 1 이상 |
 | `numOfRows` | 1~1000 |
 
+실 서버 확인 결과 TourAPI 게이트웨이는 기본 `python-requests` User-Agent에 HTTP 403을 반환할 수 있다. 기본 `build_session()`은 브라우저 호환 User-Agent를 넣는다. 커스텀 session을 주입할 때도 User-Agent를 유지한다.
+
 ## 구현 endpoint
 
 ### Typed KorService2 wrapper
@@ -124,7 +126,9 @@ TourAPI 응답은 보통 아래 형태다.
 - `items.item`이 단일 object일 수 있다.
 - `items.item`이 list일 수 있다.
 - 서비스키 오류는 `_type=json` 요청이어도 XML로 돌아올 수 있다.
+- 정상 resultCode는 `00`, `0000`, `0`, `NORMAL_CODE`를 허용한다.
 - `resultCode=03`은 목록에서는 빈 `Page`로 처리하고, 단건 상세에서는 `TourApiNoDataError`로 올린다.
+- 신청하지 않은 서비스는 JSON/XML envelope 없이 HTTP 403만 반환할 수 있으며, 이 경우 `TourApiAuthError`로 매핑한다.
 
 ## 예외 매핑
 
