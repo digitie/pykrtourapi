@@ -20,7 +20,7 @@ pykrtourapi/
 ├── _convert.py     # small conversion helpers
 ├── _time.py        # KST timestamp parsing
 ├── enums.py        # public constants and enum values
-├── models.py       # public dataclasses
+├── models.py       # public Pydantic response models
 ├── types.py        # public type aliases for downstream integrations
 ├── exceptions.py   # public exception hierarchy
 └── cli.py          # command-line entrypoint

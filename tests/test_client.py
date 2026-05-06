@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from pydantic import ValidationError
 
 from pykrtourapi import Wgs84Coordinate
 from pykrtourapi.client import KrTourApiClient
@@ -75,6 +76,9 @@ def test_search_keyword_sends_filters_and_parses_item(fake_client_factory):
     assert item.created_time is not None
     assert item.created_time.year == 2024
     assert item.show_flag == "1"
+    assert item.model_dump()["content_id"] == "126508"
+    with pytest.raises(ValidationError, match="frozen"):
+        item.title = "changed"  # type: ignore[misc]
 
 
 def test_festival_dates_are_normalized(fake_client_factory):

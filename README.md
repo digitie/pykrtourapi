@@ -11,7 +11,7 @@
 
 - `KorService2` 기본 지원: `areaBasedList2`, `locationBasedList2`, `searchKeyword2`, `searchFestival2`, `searchStay2`, 상세/이미지/코드 조회
 - `TourApiHubClient`로 한국관광콘텐츠랩 OpenAPI 목록의 27개 서비스/전체 operation 호출 지원
-- `Page[T]`와 frozen dataclass 모델 반환
+- `Page[T]`와 frozen Pydantic 모델 반환
 - `items.item`이 단일 object 또는 list로 오는 차이를 내부에서 정규화
 - `resultCode`, HTTP status, XML 형태 서비스키 오류를 typed exception으로 매핑
 - 법정동 코드(`lDong*`)와 분류체계 코드(`lclsSystm*`) 의존성 검증
@@ -89,6 +89,14 @@ nearby = client.location_based_list(
 ```
 
 TourAPI 원문 파라미터는 `mapX=경도`, `mapY=위도`입니다. `Wgs84Coordinate`는 표준 이름인 `longitude`/`latitude`를 기본으로 쓰고, 필요할 때 `map_x`/`map_y`, `lonlat`, `latlon`, `to_tourapi_params()`를 제공합니다. 기존 코드와의 호환을 위해 `location_based_list(map_x=..., map_y=..., radius=...)`도 계속 지원합니다.
+
+응답 모델은 Pydantic v2 `BaseModel` 기반입니다. 기존처럼 `item.title`로 접근할 수 있고, 외부 앱에서는 `model_dump()`, `model_dump_json()`, `model_json_schema()`를 사용할 수 있습니다.
+
+```python
+item = page.items[0]
+payload = item.model_dump()
+schema = type(item).model_json_schema()
+```
 
 ## 전체 OpenAPI Hub 호출
 

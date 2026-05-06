@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from pydantic import ValidationError
 
 from pykrtourapi import Wgs84Coordinate
 from pykrtourapi._convert import (
@@ -48,9 +49,13 @@ def test_wgs84_coordinate_normalization():
     assert to_wgs84_coordinate({"lon": 126.9, "lat": 37.5}).latitude == 37.5
     assert to_wgs84_coordinate({"mapX": "126.9", "mapY": "37.5"}).lonlat == (126.9, 37.5)
 
-    with pytest.raises(ValueError, match="longitude"):
+    dumped = coordinate.model_dump()
+    assert dumped["longitude"] == 126.9769
+    assert Wgs84Coordinate.model_json_schema()["properties"]["longitude"]
+
+    with pytest.raises(ValidationError, match="longitude"):
         Wgs84Coordinate(longitude=181, latitude=37.5)
-    with pytest.raises(ValueError, match="latitude"):
+    with pytest.raises(ValidationError, match="latitude"):
         Wgs84Coordinate(longitude=126.9, latitude=91)
     with pytest.raises(ValueError, match="mapping"):
         to_wgs84_coordinate({"x": 126.9, "y": 37.5})

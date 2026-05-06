@@ -5,7 +5,7 @@
 - Initial `pykrtourapi` package scaffold.
 - Added `KrTourApiClient` for Korea Tourism Organization TourAPI `KorService2`.
 - Added list/search/detail/image/sync/code lookup methods.
-- Added typed dataclass models and exception hierarchy.
+- Added typed response models and exception hierarchy.
 - Added offline tests for request shape, response parsing, error mapping, validation, and CLI output.
 - Added README, API notes, testing guide, troubleshooting guide, and repeated mistake guardrails.
 - Added `TourApiHubClient` and `SERVICE_DEFINITIONS` for all 27 OpenAPI services listed on `api.visitkorea.or.kr/#/useUtilExercises`.
@@ -15,3 +15,4 @@
 - Added a browser-compatible User-Agent and `resultCode=0000` success handling based on real TourAPI responses.
 - Added public `Language` and `AreaCode` enums, integration-facing type aliases, and `Wgs84Coordinate`.
 - Added coordinate normalization for `location_based_list()` while preserving `map_x`/`map_y` compatibility.
+- Migrated public response models to frozen Pydantic v2 models with `model_dump()` and JSON schema support.

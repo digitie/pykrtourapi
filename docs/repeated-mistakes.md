@@ -72,6 +72,16 @@
 
 **가드레일:** `IntroInfo.raw`, `RepeatInfo.raw`를 유지한다.
 
+## Pydantic 모델에서 `raw`를 버리기
+
+**실수:** `model_dump()` 결과만 보고 TourAPI 원문 필드를 줄여도 된다고 판단한다.
+
+**증상:** 문서에 없거나 content type별로 다른 필드가 사라져 외부 앱에서 후처리할 수 없다.
+
+**규칙:** Pydantic 모델은 안정 필드만 typed field로 올리고, 원문 응답은 항상 `raw`에 보존한다.
+
+**가드레일:** parser 테스트는 typed field와 `raw` 보존을 함께 확인한다.
+
 ## 국문 `KorService2`만 구현하고 전체 OpenAPI라고 말하기
 
 **실수:** `api.visitkorea.or.kr/#/useUtilExercises`에는 27개 서비스가 있는데, 자주 쓰는 국문 관광정보서비스만 보고 “전체 구현”으로 착각한다.

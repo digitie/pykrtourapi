@@ -1,36 +1,32 @@
-"""Dataclasses returned by the public client."""
+"""Pydantic models returned by the public client."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Generic, TypeVar
+
+from pydantic import BaseModel, ConfigDict, Field
 
 RawRecord = Mapping[str, Any]
 T = TypeVar("T")
 
 
-@dataclass(frozen=True, slots=True)
-class Wgs84Coordinate:
+class TourApiModel(BaseModel):
+    """Base class for immutable public TourAPI models."""
+
+    model_config = ConfigDict(frozen=True)
+
+
+class Wgs84Coordinate(TourApiModel):
     """WGS84 longitude/latitude coordinate used by TourAPI.
 
     TourAPI names longitude `mapX` and latitude `mapY`. This class exposes the
     standard GIS names while keeping `map_x` and `map_y` aliases for API parity.
     """
 
-    longitude: float
-    latitude: float
-
-    def __post_init__(self) -> None:
-        longitude = float(self.longitude)
-        latitude = float(self.latitude)
-        if not -180 <= longitude <= 180:
-            raise ValueError("longitude must be between -180 and 180")
-        if not -90 <= latitude <= 90:
-            raise ValueError("latitude must be between -90 and 90")
-        object.__setattr__(self, "longitude", longitude)
-        object.__setattr__(self, "latitude", latitude)
+    longitude: float = Field(ge=-180, le=180)
+    latitude: float = Field(ge=-90, le=90)
 
     @property
     def map_x(self) -> float:
@@ -62,23 +58,21 @@ class Wgs84Coordinate:
         return {"mapX": self.longitude, "mapY": self.latitude}
 
 
-@dataclass(frozen=True, slots=True)
-class Page(Generic[T]):
+class Page(TourApiModel, Generic[T]):
     """A paginated TourAPI response."""
 
     items: tuple[T, ...]
     total_count: int
     page_no: int
     num_of_rows: int
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
     @property
     def is_empty(self) -> bool:
         return not self.items
 
 
-@dataclass(frozen=True, slots=True)
-class TourItem:
+class TourItem(TourApiModel):
     """Common list/search item from TourAPI."""
 
     content_id: str | None
@@ -108,7 +102,7 @@ class TourItem:
     zipcode: str | None
     copyright_division_code: str | None
     show_flag: str | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
     @property
     def coordinate(self) -> Wgs84Coordinate | None:
@@ -119,8 +113,7 @@ class TourItem:
         return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
 
 
-@dataclass(frozen=True, slots=True)
-class TourDetail:
+class TourDetail(TourApiModel):
     """Common detail information for one content item."""
 
     content_id: str | None
@@ -151,7 +144,7 @@ class TourDetail:
     created_time: datetime | None
     modified_time: datetime | None
     copyright_division_code: str | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
     @property
     def coordinate(self) -> Wgs84Coordinate | None:
@@ -162,27 +155,24 @@ class TourDetail:
         return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
 
 
-@dataclass(frozen=True, slots=True)
-class CodeItem:
+class CodeItem(TourApiModel):
     """Code lookup item for area, category, legal dong, or classification codes."""
 
     code: str | None
     name: str | None
     rnum: int | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
 
-@dataclass(frozen=True, slots=True)
-class IntroInfo:
+class IntroInfo(TourApiModel):
     """Introduction detail record. The field set depends on content_type_id."""
 
     content_id: str | None
     content_type_id: str | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
 
-@dataclass(frozen=True, slots=True)
-class RepeatInfo:
+class RepeatInfo(TourApiModel):
     """Repeated detail record such as course stops or facility sub-items."""
 
     content_id: str | None
@@ -194,11 +184,10 @@ class RepeatInfo:
     sub_name: str | None
     sub_detail_overview: str | None
     sub_detail_img: str | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)
 
 
-@dataclass(frozen=True, slots=True)
-class ImageInfo:
+class ImageInfo(TourApiModel):
     """Image metadata returned by detailImage2."""
 
     content_id: str | None
@@ -207,4 +196,4 @@ class ImageInfo:
     origin_img_url: str | None
     small_image_url: str | None
     copyright_division_code: str | None
-    raw: RawRecord = field(repr=False)
+    raw: RawRecord = Field(repr=False)

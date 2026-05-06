@@ -26,7 +26,7 @@ mypy pykrtourapi
 - `items.item` 단일 dict/list/empty 정규화
 - 날짜 `YYYYMMDD` 변환
 - 법정동/분류체계/카테고리 의존성 검증
-- 주요 dataclass 변환
+- 주요 Pydantic 모델 변환과 `model_dump()` 직렬화
 - CLI JSON 직렬화
 - 전체 OpenAPI 카탈로그 개수와 서비스 alias
 - `TourApiHubClient`의 service/operation 동적 라우팅과 snake_case operation alias

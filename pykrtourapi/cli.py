@@ -9,6 +9,8 @@ from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from typing import Any, cast
 
+from pydantic import BaseModel
+
 from .client import KrTourApiClient
 
 
@@ -74,6 +76,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _jsonable(value: Any) -> Any:
     if isinstance(value, list | tuple):
         return [_jsonable(item) for item in value]
+    if isinstance(value, BaseModel):
+        return _jsonable(value.model_dump())
     if is_dataclass(value) and not isinstance(value, type):
         return _jsonable(asdict(cast(Any, value)))
     if isinstance(value, dict):

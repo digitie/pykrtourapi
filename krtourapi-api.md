@@ -143,6 +143,17 @@ TourAPI 응답은 보통 아래 형태다.
 - `resultCode=03`은 목록에서는 빈 `Page`로 처리하고, 단건 상세에서는 `TourApiNoDataError`로 올린다.
 - 신청하지 않은 서비스는 JSON/XML envelope 없이 HTTP 403만 반환할 수 있으며, 이 경우 `TourApiAuthError`로 매핑한다.
 
+## Pydantic 모델
+
+공개 응답 모델은 Pydantic v2 `BaseModel`을 상속한 `TourApiModel` 기반이다. 모델은 `ConfigDict(frozen=True)`로 frozen 처리해 기존 불변 모델 사용감을 유지한다.
+
+- 속성 접근: `item.title`, `page.items`
+- dict 직렬화: `model_dump()`
+- JSON 직렬화: `model_dump_json()`
+- JSON schema: `model_json_schema()`
+
+TourAPI 원문 전체는 각 모델의 `raw` 필드에 보존한다.
+
 ## 예외 매핑
 
 ```text
@@ -159,6 +170,6 @@ TourApiError
 
 1. 공식 문서 또는 실제 응답 fixture로 endpoint와 필드를 확인한다.
 2. 공개 메서드는 snake_case, 요청 파라미터는 내부에서 TourAPI 원문 이름으로 변환한다.
-3. 새 필드가 불안정하면 dataclass 필드 추가보다 `raw` 보존을 우선한다.
+3. 새 필드가 불안정하면 Pydantic 필드 추가보다 `raw` 보존을 우선한다.
 4. 일반 테스트는 네트워크를 사용하지 않는다.
 5. 반복되는 실수를 발견하면 `docs/repeated-mistakes.md`와 guardrail test를 함께 갱신한다.
