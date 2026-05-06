@@ -12,6 +12,57 @@ T = TypeVar("T")
 
 
 @dataclass(frozen=True, slots=True)
+class Wgs84Coordinate:
+    """WGS84 longitude/latitude coordinate used by TourAPI.
+
+    TourAPI names longitude `mapX` and latitude `mapY`. This class exposes the
+    standard GIS names while keeping `map_x` and `map_y` aliases for API parity.
+    """
+
+    longitude: float
+    latitude: float
+
+    def __post_init__(self) -> None:
+        longitude = float(self.longitude)
+        latitude = float(self.latitude)
+        if not -180 <= longitude <= 180:
+            raise ValueError("longitude must be between -180 and 180")
+        if not -90 <= latitude <= 90:
+            raise ValueError("latitude must be between -90 and 90")
+        object.__setattr__(self, "longitude", longitude)
+        object.__setattr__(self, "latitude", latitude)
+
+    @property
+    def map_x(self) -> float:
+        """TourAPI `mapX` value, equivalent to longitude."""
+
+        return self.longitude
+
+    @property
+    def map_y(self) -> float:
+        """TourAPI `mapY` value, equivalent to latitude."""
+
+        return self.latitude
+
+    @property
+    def lonlat(self) -> tuple[float, float]:
+        """Return `(longitude, latitude)`."""
+
+        return (self.longitude, self.latitude)
+
+    @property
+    def latlon(self) -> tuple[float, float]:
+        """Return `(latitude, longitude)` for libraries that use lat/lon order."""
+
+        return (self.latitude, self.longitude)
+
+    def to_tourapi_params(self) -> dict[str, float]:
+        """Return TourAPI parameter names for this coordinate."""
+
+        return {"mapX": self.longitude, "mapY": self.latitude}
+
+
+@dataclass(frozen=True, slots=True)
 class Page(Generic[T]):
     """A paginated TourAPI response."""
 
@@ -59,6 +110,14 @@ class TourItem:
     show_flag: str | None
     raw: RawRecord = field(repr=False)
 
+    @property
+    def coordinate(self) -> Wgs84Coordinate | None:
+        """Return standardized WGS84 coordinates when both axes are present."""
+
+        if self.map_x is None or self.map_y is None:
+            return None
+        return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
+
 
 @dataclass(frozen=True, slots=True)
 class TourDetail:
@@ -93,6 +152,14 @@ class TourDetail:
     modified_time: datetime | None
     copyright_division_code: str | None
     raw: RawRecord = field(repr=False)
+
+    @property
+    def coordinate(self) -> Wgs84Coordinate | None:
+        """Return standardized WGS84 coordinates when both axes are present."""
+
+        if self.map_x is None or self.map_y is None:
+            return None
+        return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
 
 
 @dataclass(frozen=True, slots=True)

@@ -31,6 +31,8 @@ mypy pykrtourapi
 - 전체 OpenAPI 카탈로그 개수와 서비스 alias
 - `TourApiHubClient`의 service/operation 동적 라우팅과 snake_case operation alias
 - Hub 요청의 Pythonic parameter alias(`content_id` -> `contentId` 등)
+- public enum/type export
+- WGS84 좌표 검증과 `longitude`/`latitude` -> `mapX`/`mapY` 변환
 
 ## Live test 규칙
 

@@ -21,6 +21,7 @@ pykrtourapi/
 ├── _time.py        # KST timestamp parsing
 ├── enums.py        # public constants and enum values
 ├── models.py       # public dataclasses
+├── types.py        # public type aliases for downstream integrations
 ├── exceptions.py   # public exception hierarchy
 └── cli.py          # command-line entrypoint
 ```
@@ -33,6 +34,7 @@ pykrtourapi/
 - Do not assert unstable real tourism data values in live tests; assert shape and types only.
 - Keep `TourApiHubClient` tests catalog-driven; do not call the real 27 services in default tests.
 - Keep official manual ZIP/DOCX downloads in `.manuals/`, never in git.
+- Keep coordinate tests explicit about WGS84 `longitude`/`latitude` and TourAPI `mapX`/`mapY`.
 
 ## Verification commands
 

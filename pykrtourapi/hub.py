@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
-from ._convert import enum_value, to_int_or_none, without_none
+from ._convert import enum_value, to_int_or_none, to_wgs84_coordinate, without_none
 from ._http import SessionLike, TourApiHttp
 from .client import DEFAULT_BASE_URL, DEFAULT_ENV_NAMES, _extract_items, _first_env
 from .enums import MobileOS
@@ -241,6 +241,8 @@ def _pythonic_params(params: Mapping[str, Any]) -> dict[str, Any]:
             converted["MobileOS"] = value
         elif key == "mobile_app":
             converted["MobileApp"] = value
+        elif key == "coordinate":
+            converted.update(to_wgs84_coordinate(value).to_tourapi_params())
         else:
             converted[key] = value
     return converted

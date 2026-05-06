@@ -111,3 +111,13 @@
 **규칙:** `00`, `0000`, `0`, `NORMAL_CODE`는 모두 정상 코드로 본다.
 
 **가드레일:** `test_result_code_0000_is_treated_as_success`, `test_live_korean_area_codes_returns_tourapi_shape`.
+
+## 위도/경도 순서를 섞어서 위치 검색하기
+
+**실수:** TourAPI의 `mapX`, `mapY` 이름만 보고 외부 지도 라이브러리의 `(lat, lon)` 순서와 섞어 보낸다.
+
+**증상:** 위치 기반 검색 결과가 엉뚱한 지역으로 나오거나 반경 검색이 비어 있다.
+
+**규칙:** public API에서는 `Wgs84Coordinate(longitude=..., latitude=...)`를 우선 사용한다. 튜플 좌표는 `(longitude, latitude)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=longitude`, `mapY=latitude`로 변환한다.
+
+**가드레일:** `test_wgs84_coordinate_normalization`, `test_location_accepts_standard_coordinate_inputs`.

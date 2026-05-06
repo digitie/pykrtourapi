@@ -68,6 +68,28 @@ detail = client.detail_common(page.items[0].content_id)
 print(detail.overview)
 ```
 
+## 외부 앱 연동 타입
+
+외부 프로그램에서 타입 체커와 IDE 자동완성을 쓰기 쉽도록 주요 enum과 타입 alias를 공개합니다.
+
+```python
+from pykrtourapi import AreaCode, ContentType, Language, Wgs84Coordinate
+
+client = KrTourApiClient.from_env(language=Language.KOREAN)
+
+page = client.area_based_list(
+    area_code=AreaCode.SEOUL,
+    content_type_id=ContentType.TOURIST_ATTRACTION,
+)
+
+nearby = client.location_based_list(
+    coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+    radius=1000,
+)
+```
+
+TourAPI 원문 파라미터는 `mapX=경도`, `mapY=위도`입니다. `Wgs84Coordinate`는 표준 이름인 `longitude`/`latitude`를 기본으로 쓰고, 필요할 때 `map_x`/`map_y`, `lonlat`, `latlon`, `to_tourapi_params()`를 제공합니다. 기존 코드와의 호환을 위해 `location_based_list(map_x=..., map_y=..., radius=...)`도 계속 지원합니다.
+
 ## 전체 OpenAPI Hub 호출
 
 `api.visitkorea.or.kr/#/useUtilExercises`의 메뉴얼 27개 기준 전체 서비스는 `TourApiHubClient`로 호출합니다. 서비스별 파라미터는 메뉴얼 원문 이름을 그대로 전달하고, 결과는 공통 `Page[Mapping]`으로 받습니다.

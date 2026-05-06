@@ -65,6 +65,19 @@ hub.call("area_resource_demand", "areaTarSvcDemList", baseYm="202509", areaCd="1
 
 ## 코드 체계
 
+### 공개 enum/type
+
+외부 프로그램에서 문자열 상수를 직접 흩뿌리지 않도록 아래 값을 public API로 노출한다.
+
+- `Language`: `ko`, `en`, `ja`, `zh-cn`, `zh-tw`, `de`, `fr`, `es`, `ru`
+- `AreaCode`: 국문 서비스 지역 코드
+- `ContentType`: 국문 서비스 content type 코드
+- `Arrange`, `MobileOS`
+- `Wgs84Coordinate`: WGS84 경도/위도 객체
+- `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput` 등 타입 alias
+
+위치 검색은 표준 GIS 이름인 `longitude`/`latitude`를 우선한다. TourAPI 원문 이름은 `mapX=longitude`, `mapY=latitude`로만 변환한다. 튜플 좌표는 `(longitude, latitude)` 순서로 해석한다.
+
 ### 국문 contentTypeId
 
 | 값 | 의미 |

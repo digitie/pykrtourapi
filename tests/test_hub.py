@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from pykrtourapi import SERVICE_DEFINITIONS, TourApiHubClient
+from pykrtourapi import SERVICE_DEFINITIONS, TourApiHubClient, Wgs84Coordinate
 from pykrtourapi.exceptions import TourApiRequestError
 
 from .conftest import FakeResponse, FakeSession, tour_payload
@@ -118,6 +118,21 @@ def test_hub_pythonic_param_aliases():
     assert session.calls[0]["url"].endswith("/KorService2/detailCommon2")
     assert params["contentId"] == "1"
     assert params["contentTypeId"] == "12"
+
+
+def test_hub_coordinate_alias_expands_to_tourapi_params():
+    session = FakeSession([FakeResponse(tour_payload({"contentid": "1"}))])
+    hub = TourApiHubClient("KEY", session=session)
+
+    hub.kor.location_based_list(
+        coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+        radius=1000,
+    )
+
+    params = session.calls[0]["params"]
+    assert params["mapX"] == 126.9769
+    assert params["mapY"] == 37.5796
+    assert params["radius"] == 1000
 
 
 def test_hub_unknown_service_and_operation_errors():

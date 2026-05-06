@@ -4,7 +4,15 @@ from datetime import date
 
 import pytest
 
-from pykrtourapi._convert import strip_or_none, to_float_or_none, to_int_or_none, to_yyyymmdd, yn
+from pykrtourapi import Wgs84Coordinate
+from pykrtourapi._convert import (
+    strip_or_none,
+    to_float_or_none,
+    to_int_or_none,
+    to_wgs84_coordinate,
+    to_yyyymmdd,
+    yn,
+)
 from pykrtourapi._time import parse_tour_datetime
 
 
@@ -26,6 +34,26 @@ def test_date_and_yn_conversions():
     assert yn("y") == "Y"
     with pytest.raises(ValueError):
         yn("yes")
+
+
+def test_wgs84_coordinate_normalization():
+    coordinate = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+
+    assert coordinate.map_x == 126.9769
+    assert coordinate.map_y == 37.5796
+    assert coordinate.lonlat == (126.9769, 37.5796)
+    assert coordinate.latlon == (37.5796, 126.9769)
+    assert coordinate.to_tourapi_params() == {"mapX": 126.9769, "mapY": 37.5796}
+    assert to_wgs84_coordinate((126.9, 37.5)).longitude == 126.9
+    assert to_wgs84_coordinate({"lon": 126.9, "lat": 37.5}).latitude == 37.5
+    assert to_wgs84_coordinate({"mapX": "126.9", "mapY": "37.5"}).lonlat == (126.9, 37.5)
+
+    with pytest.raises(ValueError, match="longitude"):
+        Wgs84Coordinate(longitude=181, latitude=37.5)
+    with pytest.raises(ValueError, match="latitude"):
+        Wgs84Coordinate(longitude=126.9, latitude=91)
+    with pytest.raises(ValueError, match="mapping"):
+        to_wgs84_coordinate({"x": 126.9, "y": 37.5})
 
 
 def test_parse_tour_datetime():

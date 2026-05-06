@@ -25,6 +25,8 @@ Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public beh
 12. Downloaded official manual ZIP/DOCX files stay in `.manuals/` and are never committed.
 13. Secrets stay in local `.env.local` or shell environment only; never commit API keys.
 14. Treat `resultCode=0000` as success, and keep a browser-compatible User-Agent for live TourAPI calls.
+15. Public coordinate APIs use WGS84 `longitude`/`latitude`; convert to TourAPI `mapX`/`mapY` only at the request boundary.
+16. Keep enum/type exports stable for downstream applications and type checkers.
 
 ## Supported endpoints
 
@@ -92,6 +94,8 @@ Default tests should cover:
 - service catalog count/aliases
 - generic Hub client routing
 - Pythonic parameter alias conversion
+- public enum/type exports
+- WGS84 coordinate normalization
 
 Live tests, if added, must be marked `live` and skip when `KTO_SERVICE_KEY` is absent.
 Use `scripts/run_live_tests.ps1` to load `.env.local`; do not hard-code keys in tests.

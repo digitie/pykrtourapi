@@ -12,12 +12,13 @@ from ._convert import (
     strip_or_none,
     to_float_or_none,
     to_int_or_none,
+    to_wgs84_coordinate,
     to_yyyymmdd,
     yn,
 )
 from ._http import SessionLike, TourApiHttp
 from ._time import parse_tour_datetime
-from .enums import SERVICE_NAME_BY_LANGUAGE, Arrange, ContentType, MobileOS
+from .enums import SERVICE_NAME_BY_LANGUAGE, AreaCode, Arrange, ContentType, Language, MobileOS
 from .exceptions import TourApiAuthError, TourApiNoDataError, TourApiParseError, TourApiRequestError
 from .models import (
     CodeItem,
@@ -28,6 +29,7 @@ from .models import (
     RepeatInfo,
     TourDetail,
     TourItem,
+    Wgs84Coordinate,
 )
 
 DEFAULT_BASE_URL = "http://apis.data.go.kr/B551011"
@@ -47,7 +49,7 @@ class KrTourApiClient:
         self,
         service_key: str | None = None,
         *,
-        language: str = "ko",
+        language: Language | str = Language.KOREAN,
         service_name: str | None = None,
         mobile_os: MobileOS | str = MobileOS.ETC,
         mobile_app: str = "pykrtourapi",
@@ -108,7 +110,7 @@ class KrTourApiClient:
         self,
         *,
         content_type_id: ContentType | str | None = None,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         cat1: str | None = None,
         cat2: str | None = None,
@@ -147,9 +149,10 @@ class KrTourApiClient:
     def location_based_list(
         self,
         *,
-        map_x: float,
-        map_y: float,
         radius: int,
+        map_x: float | None = None,
+        map_y: float | None = None,
+        coordinate: Wgs84Coordinate | tuple[float, float] | Mapping[str, Any] | None = None,
         content_type_id: ContentType | str | None = None,
         l_dong_regn_cd: str | None = None,
         l_dong_signgu_cd: str | None = None,
@@ -163,6 +166,7 @@ class KrTourApiClient:
     ) -> Page[TourItem]:
         """Search tourism information around WGS84 coordinates."""
 
+        coordinate_value = _resolve_coordinate(map_x=map_x, map_y=map_y, coordinate=coordinate)
         if not 1 <= int(radius) <= 20000:
             raise ValueError("radius must be between 1 and 20000 meters")
         params = self._list_params(
@@ -177,7 +181,7 @@ class KrTourApiClient:
             page_no=page_no,
             num_of_rows=num_of_rows,
         )
-        params.update({"mapX": map_x, "mapY": map_y, "radius": int(radius)})
+        params.update(coordinate_value.to_tourapi_params() | {"radius": int(radius)})
         return self._get_page("locationBasedList2", params, _tour_item)
 
     def search_keyword(
@@ -185,7 +189,7 @@ class KrTourApiClient:
         keyword: str,
         *,
         content_type_id: ContentType | str | None = None,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         cat1: str | None = None,
         cat2: str | None = None,
@@ -227,7 +231,7 @@ class KrTourApiClient:
         event_start_date: str | date | datetime,
         *,
         event_end_date: str | date | datetime | None = None,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         l_dong_regn_cd: str | None = None,
         l_dong_signgu_cd: str | None = None,
@@ -261,7 +265,7 @@ class KrTourApiClient:
     def search_stay(
         self,
         *,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         l_dong_regn_cd: str | None = None,
         l_dong_signgu_cd: str | None = None,
@@ -361,7 +365,7 @@ class KrTourApiClient:
         self,
         *,
         content_type_id: ContentType | str | None = None,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         cat1: str | None = None,
         cat2: str | None = None,
@@ -401,7 +405,7 @@ class KrTourApiClient:
 
     def area_codes(
         self,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         *,
         page_no: int = 1,
         num_of_rows: int = 100,
@@ -409,7 +413,7 @@ class KrTourApiClient:
         """Fetch area codes, or sigungu codes when area_code is provided."""
 
         params = self._page_params(page_no=page_no, num_of_rows=num_of_rows) | {
-            "areaCode": area_code
+            "areaCode": enum_value(area_code)
         }
         return self._get_page("areaCode2", params, _code_item)
 
@@ -493,7 +497,7 @@ class KrTourApiClient:
         self,
         *,
         content_type_id: ContentType | str | None = None,
-        area_code: str | None = None,
+        area_code: AreaCode | str | None = None,
         sigungu_code: str | None = None,
         cat1: str | None = None,
         cat2: str | None = None,
@@ -526,7 +530,7 @@ class KrTourApiClient:
             "arrange": enum_value(arrange),
             "contentTypeId": enum_value(content_type_id),
             "modifiedtime": to_yyyymmdd(modified_time, field="modified_time"),
-            "areaCode": area_code,
+            "areaCode": enum_value(area_code),
             "sigunguCode": sigungu_code,
             "cat1": cat1,
             "cat2": cat2,
@@ -574,12 +578,27 @@ def _first_env(names: tuple[str, ...]) -> str | None:
     return None
 
 
-def _service_name_for_language(language: str) -> str:
+def _service_name_for_language(language: Language | str) -> str:
     try:
-        return SERVICE_NAME_BY_LANGUAGE[language.lower()]
+        return SERVICE_NAME_BY_LANGUAGE[str(language).lower()]
     except KeyError as exc:
         supported = ", ".join(sorted(SERVICE_NAME_BY_LANGUAGE))
         raise ValueError(f"unsupported language {language!r}; supported: {supported}") from exc
+
+
+def _resolve_coordinate(
+    *,
+    map_x: float | None,
+    map_y: float | None,
+    coordinate: Wgs84Coordinate | tuple[float, float] | Mapping[str, Any] | None,
+) -> Wgs84Coordinate:
+    if coordinate is not None:
+        if map_x is not None or map_y is not None:
+            raise ValueError("coordinate cannot be combined with map_x or map_y")
+        return to_wgs84_coordinate(coordinate)
+    if map_x is None or map_y is None:
+        raise ValueError("location_based_list requires coordinate or both map_x and map_y")
+    return Wgs84Coordinate(longitude=map_x, latitude=map_y)
 
 
 def _extract_items(body: Mapping[str, Any], endpoint: str) -> tuple[Mapping[str, Any], ...]:
@@ -732,7 +751,7 @@ def _validate_page(page_no: int, num_of_rows: int) -> None:
         raise ValueError("num_of_rows must be between 1 and 1000")
 
 
-def _validate_legacy_area(*, area_code: str | None, sigungu_code: str | None) -> None:
+def _validate_legacy_area(*, area_code: AreaCode | str | None, sigungu_code: str | None) -> None:
     if sigungu_code and not area_code:
         raise TourApiRequestError("sigungu_code requires area_code")
 

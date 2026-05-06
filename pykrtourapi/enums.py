@@ -16,6 +16,20 @@ class MobileOS(StrEnum):
     ETC = "ETC"
 
 
+class Language(StrEnum):
+    """TourAPI language service selectors."""
+
+    KOREAN = "ko"
+    ENGLISH = "en"
+    JAPANESE = "ja"
+    SIMPLIFIED_CHINESE = "zh-cn"
+    TRADITIONAL_CHINESE = "zh-tw"
+    GERMAN = "de"
+    FRENCH = "fr"
+    SPANISH = "es"
+    RUSSIAN = "ru"
+
+
 class Arrange(StrEnum):
     """TourAPI arrange parameter values."""
 
@@ -42,6 +56,28 @@ class ContentType(StrEnum):
     RESTAURANT = "39"
 
 
+class AreaCode(StrEnum):
+    """KorService2 areaCode values."""
+
+    SEOUL = "1"
+    INCHEON = "2"
+    DAEJEON = "3"
+    DAEGU = "4"
+    GWANGJU = "5"
+    BUSAN = "6"
+    ULSAN = "7"
+    SEJONG = "8"
+    GYEONGGI = "31"
+    GANGWON = "32"
+    CHUNGBUK = "33"
+    CHUNGNAM = "34"
+    GYEONGBUK = "35"
+    GYEONGNAM = "36"
+    JEONBUK = "37"
+    JEONNAM = "38"
+    JEJU = "39"
+
+
 CONTENT_TYPE_LABELS: Final[dict[str, str]] = {
     "12": "관광지",
     "14": "문화시설",
@@ -51,6 +87,26 @@ CONTENT_TYPE_LABELS: Final[dict[str, str]] = {
     "32": "숙박",
     "38": "쇼핑",
     "39": "음식점",
+}
+
+AREA_CODE_LABELS: Final[dict[str, str]] = {
+    "1": "서울",
+    "2": "인천",
+    "3": "대전",
+    "4": "대구",
+    "5": "광주",
+    "6": "부산",
+    "7": "울산",
+    "8": "세종",
+    "31": "경기",
+    "32": "강원",
+    "33": "충북",
+    "34": "충남",
+    "35": "경북",
+    "36": "경남",
+    "37": "전북",
+    "38": "전남",
+    "39": "제주",
 }
 
 SERVICE_NAME_BY_LANGUAGE: Final[dict[str, str]] = {
@@ -74,3 +130,11 @@ def content_type_label(value: str | ContentType | None) -> str | None:
     if value is None:
         return None
     return CONTENT_TYPE_LABELS.get(str(value))
+
+
+def area_code_label(value: str | AreaCode | None) -> str | None:
+    """Return the Korean label for a KorService2 area code."""
+
+    if value is None:
+        return None
+    return AREA_CODE_LABELS.get(str(value))
