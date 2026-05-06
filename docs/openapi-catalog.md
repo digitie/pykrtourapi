@@ -63,3 +63,22 @@ page = hub.pet.detail_pet_tour2(content_id="123")
 - `KorService2`처럼 typed high-level 메서드가 있는 서비스도 `TourApiHubClient`에서는 raw record로 반환합니다.
 - 메뉴얼마다 구버전 서비스명과 최신 서비스명이 함께 섞여 있는 경우가 있어, 표에는 최신/가장 많이 등장한 서비스명을 기준으로 정리했습니다.
 - 일부 메뉴얼의 예제 URL에는 오탈자가 있습니다. 예: Odii 메뉴얼에는 `themeBaseSyncdList`가 보이나 operation 표와 실제 패턴 기준으로 `themeBasedSyncList`를 사용합니다.
+- Hub 클라이언트의 반환값은 Pydantic `Page[Mapping[str, Any]]`입니다. 서비스별 item 필드가 매우 다르므로 generic path에서는 typed item 모델을 만들지 않고 원문 record를 보존합니다.
+- `page_no`, `num_of_rows`, `content_id`, `content_type_id`, `coordinate` 같은 Python식 alias는 Hub에서도 지원합니다. 특히 `coordinate`는 `Wgs84Coordinate`, `(longitude, latitude)` tuple, `{"longitude": ..., "latitude": ...}` mapping을 `mapX`/`mapY`로 변환합니다.
+- 국문 `KorService2`의 자주 쓰는 endpoint는 `KrTourApiClient`에 typed method가 있습니다. 전체 서비스 범위가 필요하면 Hub, 더 강한 모델과 enum이 필요하면 typed client를 선택합니다.
+
+## Catalog Maintenance
+
+공식 활용신청 목록이나 메뉴얼 ZIP이 바뀌면 아래 순서로 갱신합니다.
+
+1. `.manuals/`에 새 메뉴얼을 내려받는다.
+2. `pykrtourapi/services.py`의 `SERVICE_DEFINITIONS`를 갱신한다.
+3. `docs/openapi-catalog.md`의 service 표와 확인 기준일을 맞춘다.
+4. `tests/test_hub.py`의 카탈로그 개수, service key, operation routing 테스트를 갱신한다.
+5. 원본 ZIP/DOCX는 git에 올리지 않는다.
+
+다운로드 스크립트:
+
+```powershell
+.\scripts\download_visitkorea_manuals.ps1
+```

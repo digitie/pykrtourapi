@@ -1,20 +1,20 @@
 # pykrtourapi
 
-한국관광공사(KTO) TourAPI를 Python에서 쓰기 좋게 감싼 비공식 클라이언트입니다.
+`pykrtourapi`는 한국관광공사(KTO) TourAPI를 Python 애플리케이션에서 다루기 쉽게 감싼 비공식 클라이언트입니다.
 
-기본 대상은 공공데이터포털의 **한국관광공사_국문 관광정보서비스_GW**이며, 현재 기본 서비스 URL은 `http://apis.data.go.kr/B551011/KorService2`입니다. 공식 문서 기준으로 지역/위치/키워드/행사/숙박/상세/이미지/동기화/코드 조회 계열을 우선 지원합니다.
+기본 typed 클라이언트는 공공데이터포털의 **한국관광공사_국문 관광정보서비스_GW** (`KorService2`)를 대상으로 합니다. 한국관광콘텐츠랩 OpenAPI 활용신청 목록에 있는 전체 27개 서비스, 211개 operation은 `TourApiHubClient`로 호출할 수 있습니다.
 
 > 확인 기준일: 2026-04-30  
 > 공식 근거: [공공데이터포털 국문 관광정보서비스_GW](https://www.data.go.kr/en/data/15101578/openapi.do), [한국관광콘텐츠랩 OpenAPI 활용신청 목록](https://api.visitkorea.or.kr/#/useUtilExercises), [2026-01-09 TourAPI URL/입출력 변경 공지](https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000004471)
 
 ## 특징
 
-- `KorService2` 기본 지원: `areaBasedList2`, `locationBasedList2`, `searchKeyword2`, `searchFestival2`, `searchStay2`, 상세/이미지/코드 조회
-- `TourApiHubClient`로 한국관광콘텐츠랩 OpenAPI 목록의 27개 서비스/전체 operation 호출 지원
-- `Page[T]`와 frozen Pydantic 모델 반환
-- `items.item`이 단일 object 또는 list로 오는 차이를 내부에서 정규화
-- `resultCode`, HTTP status, XML 형태 서비스키 오류를 typed exception으로 매핑
-- 법정동 코드(`lDong*`)와 분류체계 코드(`lclsSystm*`) 의존성 검증
+- `KorService2` typed wrapper: 지역/위치/키워드/행사/숙박/상세/이미지/동기화/코드 조회
+- `TourApiHubClient`: 공식 활용신청 목록 27개 서비스 전체 operation generic 호출
+- Pydantic v2 기반 frozen 응답 모델: `model_dump()`, `model_dump_json()`, `model_json_schema()` 지원
+- `Wgs84Coordinate`로 위경도 표준화: `longitude`/`latitude`를 TourAPI `mapX`/`mapY`로 변환
+- `items.item`이 빈 값, 단일 object, list로 오는 차이를 내부에서 정규화
+- HTTP status, TourAPI `resultCode`, XML 인증 오류를 typed exception으로 매핑
 - 기본 테스트는 실제 API를 호출하지 않는 offline mock 방식
 
 ## 설치
@@ -25,9 +25,11 @@
 pip install -e ".[dev]"
 ```
 
+패키지 런타임 의존성은 `requests`, `pydantic>=2.7`, Windows용 `tzdata`입니다.
+
 ## 인증키
 
-공공데이터포털에서 한국관광공사 국문 관광정보서비스 활용 신청 후 **Decoding 인증키**를 환경변수에 넣는 방식을 권장합니다. 이 라이브러리는 `requests.get(..., params=...)`를 사용하므로 이미 인코딩된 키를 다시 인코딩하지 않도록 주의하세요.
+공공데이터포털에서 API 활용신청 후 **Decoding 인증키**를 환경변수에 넣는 방식을 권장합니다. 이 라이브러리는 `requests.get(..., params=...)`를 사용하므로 이미 encoding된 키를 다시 encoding하지 않도록 주의하세요.
 
 ```bash
 export KTO_SERVICE_KEY="발급받은_decoding_인증키"
@@ -48,7 +50,9 @@ Set-Content .env.local 'KTO_SERVICE_KEY=발급받은_decoding_인증키'
 .\scripts\run_live_tests.ps1
 ```
 
-## 사용 예시
+`.env*`는 gitignore 대상입니다. 인증키는 테스트 코드, 문서 예시, shell script 기본값에 직접 쓰지 않습니다.
+
+## 빠른 시작
 
 ```python
 from pykrtourapi import ContentType, KrTourApiClient
@@ -62,92 +66,15 @@ page = client.search_keyword(
 )
 
 for item in page.items:
-    print(item.content_id, item.title, item.addr1, item.map_x, item.map_y)
+    print(item.content_id, item.title, item.addr1, item.coordinate)
 
 detail = client.detail_common(page.items[0].content_id)
 print(detail.overview)
 ```
 
-## 외부 앱 연동 타입
+## Typed Client
 
-외부 프로그램에서 타입 체커와 IDE 자동완성을 쓰기 쉽도록 주요 enum과 타입 alias를 공개합니다.
-
-```python
-from pykrtourapi import AreaCode, ContentType, Language, Wgs84Coordinate
-
-client = KrTourApiClient.from_env(language=Language.KOREAN)
-
-page = client.area_based_list(
-    area_code=AreaCode.SEOUL,
-    content_type_id=ContentType.TOURIST_ATTRACTION,
-)
-
-nearby = client.location_based_list(
-    coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
-    radius=1000,
-)
-```
-
-TourAPI 원문 파라미터는 `mapX=경도`, `mapY=위도`입니다. `Wgs84Coordinate`는 표준 이름인 `longitude`/`latitude`를 기본으로 쓰고, 필요할 때 `map_x`/`map_y`, `lonlat`, `latlon`, `to_tourapi_params()`를 제공합니다. 기존 코드와의 호환을 위해 `location_based_list(map_x=..., map_y=..., radius=...)`도 계속 지원합니다.
-
-응답 모델은 Pydantic v2 `BaseModel` 기반입니다. 기존처럼 `item.title`로 접근할 수 있고, 외부 앱에서는 `model_dump()`, `model_dump_json()`, `model_json_schema()`를 사용할 수 있습니다.
-
-```python
-item = page.items[0]
-payload = item.model_dump()
-schema = type(item).model_json_schema()
-```
-
-## 전체 OpenAPI Hub 호출
-
-`api.visitkorea.or.kr/#/useUtilExercises`의 메뉴얼 27개 기준 전체 서비스는 `TourApiHubClient`로 호출합니다. 서비스별 파라미터는 메뉴얼 원문 이름을 그대로 전달하고, 결과는 공통 `Page[Mapping]`으로 받습니다.
-
-```python
-from pykrtourapi import TourApiHubClient
-
-hub = TourApiHubClient.from_env(mobile_app="my-travel-app")
-
-# 고캠핑
-camping = hub.gocamping.based_list(facltNm="숲")
-
-# 관광사진
-photos = hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
-
-# 지역별 관광 자원 수요
-demand = hub.area_resource_demand.area_tar_svc_dem_list(
-    baseYm="202509",
-    areaCd="11",
-    signguCd="11530",
-)
-```
-
-전체 서비스 key와 operation은 [docs/openapi-catalog.md](docs/openapi-catalog.md)에 정리했습니다.
-
-위치 기반 조회:
-
-```python
-nearby = client.location_based_list(
-    map_x=126.9769,
-    map_y=37.5796,
-    radius=1000,
-    content_type_id=ContentType.RESTAURANT,
-)
-```
-
-코드 조회:
-
-```python
-for code in client.area_codes().items:
-    print(code.code, code.name)
-
-for code in client.legal_dong_codes(list_yn=True).items:
-    print(code.raw)
-
-for code in client.classification_system_codes(list_yn=True).items:
-    print(code.raw)
-```
-
-## 제공 메서드
+`KrTourApiClient`는 자주 쓰는 국문 관광정보서비스를 typed method로 제공합니다.
 
 | 메서드 | TourAPI endpoint | 반환 |
 |---|---|---|
@@ -167,26 +94,90 @@ for code in client.classification_system_codes(list_yn=True).items:
 | `classification_system_codes()` | `lclsSystmCode2` | `Page[CodeItem]` |
 | `raw_endpoint()` | 임의 endpoint | `Page[Mapping]` |
 
-## 전체 서비스 카탈로그
+## 전체 OpenAPI Hub
 
-`TourApiHubClient.services` 또는 `SERVICE_DEFINITIONS`에서 공식 목록 기반 서비스 정의를 확인할 수 있습니다.
+`TourApiHubClient`는 `api.visitkorea.or.kr/#/useUtilExercises`의 메뉴얼 27개 기준 전체 서비스를 generic 방식으로 호출합니다. 서비스별 파라미터는 메뉴얼 원문 이름을 그대로 전달하고, 결과는 공통 `Page[Mapping]`으로 받습니다.
 
 ```python
-from pykrtourapi import SERVICE_DEFINITIONS
+from pykrtourapi import TourApiHubClient, Wgs84Coordinate
 
-for service in SERVICE_DEFINITIONS:
-    print(service.key, service.service_name, service.operations)
+hub = TourApiHubClient.from_env(mobile_app="my-travel-app")
+
+camping = hub.gocamping.based_list(facltNm="숲")
+
+photos = hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
+
+nearby_pet = hub.pet.location_based_list(
+    coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+    radius=1000,
+)
 ```
+
+`page_no`, `num_of_rows`, `content_id`, `content_type_id`, `coordinate`는 Python식 이름으로 넘길 수 있고, 내부에서 TourAPI 원문 파라미터로 변환됩니다. 전체 서비스 key와 operation 목록은 [docs/openapi-catalog.md](docs/openapi-catalog.md)에 정리되어 있습니다.
+
+## Pydantic 모델
+
+응답 모델은 Pydantic v2 `BaseModel` 기반이며 frozen 설정을 사용합니다. 기존처럼 속성 접근을 쓰면서도, 외부 앱에서는 Pydantic 직렬화와 JSON schema를 사용할 수 있습니다.
+
+```python
+item = page.items[0]
+
+print(item.title)
+payload = item.model_dump()
+json_text = item.model_dump_json()
+schema = type(item).model_json_schema()
+```
+
+TourAPI 원문 응답은 각 모델의 `raw` 필드에 보존합니다. 아직 안정적으로 모델링하지 않은 content-type별 필드는 `raw`에서 확인하세요.
+
+모델 직렬화, JSON schema, frozen 모델 사용법은 [docs/pydantic-models.md](docs/pydantic-models.md)에 더 자세히 정리했습니다.
+
+## 좌표 규칙
+
+TourAPI 원문은 `mapX=경도`, `mapY=위도`를 사용합니다. `pykrtourapi`의 public API는 표준 GIS 이름인 `longitude`/`latitude`를 우선합니다.
+
+```python
+from pykrtourapi import Wgs84Coordinate
+
+coord = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+
+client.location_based_list(coordinate=coord, radius=1000)
+client.location_based_list(coordinate=(126.9769, 37.5796), radius=1000)
+client.location_based_list(map_x=126.9769, map_y=37.5796, radius=1000)  # 기존 호환
+```
+
+튜플 좌표는 `(longitude, latitude)` 순서입니다. 다른 지도 라이브러리의 `(lat, lon)` 순서와 섞지 않도록 주의하세요.
+
+## Enum과 타입
+
+외부 프로그램에서 문자열 상수를 직접 흩뿌리지 않도록 주요 enum과 타입 alias를 공개합니다.
+
+```python
+from pykrtourapi import AreaCode, ContentType, Language
+
+client = KrTourApiClient.from_env(language=Language.KOREAN)
+page = client.area_based_list(
+    area_code=AreaCode.SEOUL,
+    content_type_id=ContentType.TOURIST_ATTRACTION,
+)
+```
+
+주요 공개 타입:
+
+- `Language`, `MobileOS`, `Arrange`
+- `AreaCode`, `ContentType`
+- `Wgs84Coordinate`
+- `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput`
 
 ## 다른 언어 서비스
 
-동일한 endpoint 이름을 쓰는 다국어 서비스는 `language=`로 선택할 수 있습니다.
+동일한 endpoint 이름을 따르는 다국어 서비스는 `language=`로 선택할 수 있습니다. 단, 공공데이터포털에서 해당 서비스를 활용신청하지 않은 인증키로 호출하면 HTTP 403 또는 인증 오류가 날 수 있습니다.
 
 ```python
 client = KrTourApiClient.from_env(language="en")  # EngService2
 ```
 
-지원 매핑: `ko`, `en`, `ja`/`jp`, `zh-cn`/`zh`, `zh-tw`, `de`, `fr`, `es`, `ru`
+지원 값: `ko`, `en`, `ja`/`jp`, `zh-cn`/`zh`, `zh-tw`, `de`, `fr`, `es`, `ru`
 
 ## CLI
 
@@ -197,7 +188,7 @@ pykrtourapi detail 126508
 pykrtourapi area-codes
 ```
 
-## 개발
+## 개발과 테스트
 
 ```bash
 python -m compileall pykrtourapi tests
@@ -207,9 +198,17 @@ ruff check .
 mypy pykrtourapi
 ```
 
-기본 테스트는 실제 TourAPI를 호출하지 않습니다. live test를 추가할 때는 `@pytest.mark.live`를 붙이고 `KTO_SERVICE_KEY`가 없으면 skip 해야 합니다. 로컬 키 파일은 `.env.local`에만 두며, `.env*`는 gitignore 대상입니다.
+기본 테스트는 실제 TourAPI를 호출하지 않습니다. live test는 `@pytest.mark.live`로 분리하고, `KTO_SERVICE_KEY`가 없으면 skip합니다.
 
-자세한 구현 규칙은 [krtourapi-api.md](krtourapi-api.md), 반복 실수 방지 문서는 [docs/repeated-mistakes.md](docs/repeated-mistakes.md), 테스트 정책은 [docs/testing.md](docs/testing.md)를 참고하세요.
+## 문서
+
+- [docs/user-guide.md](docs/user-guide.md): 설치부터 typed client, Hub, Pydantic, 좌표, 테스트까지 한 번에 보는 사용자 가이드
+- [docs/pydantic-models.md](docs/pydantic-models.md): Pydantic v2 응답 모델, 직렬화, JSON schema, `raw` 보존 규칙
+- [krtourapi-api.md](krtourapi-api.md): 구현 원칙과 응답/예외 매핑 메모
+- [docs/openapi-catalog.md](docs/openapi-catalog.md): 27개 서비스와 operation 카탈로그
+- [docs/testing.md](docs/testing.md): 테스트 정책
+- [docs/troubleshooting.md](docs/troubleshooting.md): 문제 해결
+- [docs/repeated-mistakes.md](docs/repeated-mistakes.md): 반복 실수 방지 규칙
 
 ## 라이선스
 

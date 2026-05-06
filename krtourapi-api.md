@@ -173,3 +173,13 @@ TourApiError
 3. 새 필드가 불안정하면 Pydantic 필드 추가보다 `raw` 보존을 우선한다.
 4. 일반 테스트는 네트워크를 사용하지 않는다.
 5. 반복되는 실수를 발견하면 `docs/repeated-mistakes.md`와 guardrail test를 함께 갱신한다.
+
+## 관련 문서
+
+- [README.md](README.md): 빠른 시작과 public API 요약
+- [docs/user-guide.md](docs/user-guide.md): 외부 프로그램에서 쓰는 흐름 중심 가이드
+- [docs/pydantic-models.md](docs/pydantic-models.md): Pydantic 응답 모델과 직렬화 규칙
+- [docs/openapi-catalog.md](docs/openapi-catalog.md): 전체 27개 서비스 카탈로그
+- [docs/testing.md](docs/testing.md): offline/live/documentation 테스트 정책
+- [docs/troubleshooting.md](docs/troubleshooting.md): 인증, 좌표, Hub, 모델 문제 해결
+- [docs/repeated-mistakes.md](docs/repeated-mistakes.md): 반복 실수와 guardrail

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Expanded documentation around installation, authentication, typed client usage, Hub usage, Pydantic models, coordinate normalization, exceptions, CLI usage, and testing.
+- Added `docs/user-guide.md` as the primary library usage guide.
+- Added `docs/pydantic-models.md` for Pydantic v2 serialization, JSON schema, frozen models, and `raw` preservation.
+- Added documentation guardrails for local markdown links and public model usage.
+
 ## 0.1.0
 
 - Initial `pykrtourapi` package scaffold.

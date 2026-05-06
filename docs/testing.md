@@ -33,6 +33,18 @@ mypy pykrtourapi
 - Hub 요청의 Pythonic parameter alias(`content_id` -> `contentId` 등)
 - public enum/type export
 - WGS84 좌표 검증과 `longitude`/`latitude` -> `mapX`/`mapY` 변환
+- README와 문서 링크가 실제 파일을 가리키는지
+- 사용자 가이드가 Pydantic, Hub, 좌표, 인증키 보안 흐름을 계속 설명하는지
+
+## 문서 테스트
+
+문서가 public API의 일부처럼 쓰이므로 기본 테스트에 가벼운 문서 guardrail을 둔다.
+
+- README의 로컬 `.md` 링크는 깨지면 안 된다.
+- `docs/user-guide.md`는 `KrTourApiClient`, `TourApiHubClient`, `Wgs84Coordinate`, `model_dump`, `KTO_SERVICE_KEY`를 언급해야 한다.
+- `docs/pydantic-models.md`는 `TourApiModel`, `model_dump_json`, `model_json_schema`, `raw`, `model_copy`를 언급해야 한다.
+
+문서 테스트는 문장 품질을 검증하는 용도가 아니라, 기능 추가 후 문서 파일을 빠뜨리는 실수를 막는 최소 안전장치다.
 
 ## Live test 규칙
 

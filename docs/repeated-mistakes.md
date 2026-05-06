@@ -131,3 +131,23 @@
 **규칙:** public API에서는 `Wgs84Coordinate(longitude=..., latitude=...)`를 우선 사용한다. 튜플 좌표는 `(longitude, latitude)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=longitude`, `mapY=latitude`로 변환한다.
 
 **가드레일:** `test_wgs84_coordinate_normalization`, `test_location_accepts_standard_coordinate_inputs`.
+
+## 문서 링크만 추가하고 파일을 만들지 않기
+
+**실수:** README 문서 목록에 새 `.md` 링크를 추가한 뒤 실제 파일을 만들지 않거나 이름을 바꾼다.
+
+**증상:** 사용자가 README에서 바로 따라가야 할 가이드가 404가 되고, 새 public 기능을 어디서 봐야 하는지 흐름이 끊긴다.
+
+**규칙:** README의 로컬 markdown 링크는 실제 파일을 가리켜야 한다. 새 문서를 추가하면 README 문서 목록, 관련 가이드, 테스트 문서의 guardrail도 함께 갱신한다.
+
+**가드레일:** `test_readme_local_markdown_links_exist`.
+
+## Pydantic 모델을 mutable dataclass처럼 문서화하기
+
+**실수:** 응답 모델이 Pydantic frozen model인데 `dataclasses.asdict()`나 직접 필드 대입 예시를 문서에 남긴다.
+
+**증상:** 외부 프로그램 사용자가 예시를 따라 하다가 `ValidationError` 또는 타입 오류를 만난다.
+
+**규칙:** dict 변환은 `model_dump()`, JSON 변환은 `model_dump_json()`, 수정 사본은 `model_copy(update=...)`로 설명한다. 원문 TourAPI 필드는 `raw` 보존 규칙을 함께 적는다.
+
+**가드레일:** `test_user_docs_cover_public_model_usage`.
