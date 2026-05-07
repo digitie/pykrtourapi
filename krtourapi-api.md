@@ -59,9 +59,14 @@ hub = TourApiHubClient.from_env()
 hub.gocamping.based_list(facltNm="숲")
 hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
 hub.call("area_resource_demand", "areaTarSvcDemList", baseYm="202509", areaCd="11")
+hub.related_tour.area_based_list(base_ym="202504", area_cd="51", signgu_cd="51130")
 ```
 
 서비스 key, service name, alias, operation 목록은 `docs/openapi-catalog.md`와 `SERVICE_DEFINITIONS`가 단일 기준이다. 메뉴얼 ZIP 원본은 `.manuals/`에 다운로드해 분석하되 저장소에는 커밋하지 않는다.
+
+`related_tour` 서비스는 `area_based_list()`와 `search_keyword()` typed helper를 제공해 `Page[RelatedTourItem]`을 반환한다. 기존 generic `call()`은 계속 `Page[Mapping]` raw record를 반환한다. TarRlteTarService1의 `areaCd`와 `signguCd`는 해당 서비스의 TourAPI 지역 코드이며 법정동코드가 아니다.
+
+typed client와 Hub는 모두 pagination iterator를 제공한다. `Page.has_next_page`는 `total_count`, `page_no`, `num_of_rows`를 기준으로 계산하고, `iter_pages()`는 다음 `pageNo`를 증가시키며 호출한다. `max_pages` 또는 `max_items`는 비정상 응답에 대한 guard로 사용한다. 목록 API의 `NO_DATA`는 빈 iterator이고, 인증/쿼터/서버 오류는 기존 exception mapping을 그대로 따른다.
 
 ## 코드 체계
 
@@ -154,6 +159,12 @@ TourAPI 응답은 보통 아래 형태다.
 
 TourAPI 원문 전체는 각 모델의 `raw` 필드에 보존한다.
 
+목록 응답 `Page.context`에는 호출 provenance를 보존한다. `service_name`, `endpoint`, `request_params`, `collected_at`을 담고, `request_params`에는 `MobileOS`, `MobileApp`, `_type`과 endpoint별 파라미터만 남긴다. 인증키 원문인 `serviceKey`는 포함하지 않는다. 단건 `detailCommon2`는 기존 반환형을 유지하면서 `TourDetail.context`에 같은 정보를 담는다.
+
+`RelatedTourItem`은 TarRlteTarService1 응답의 `baseYm`, `tAtsCd`, `rlteTatsNm`, `rlteRank` 같은 원문 필드명을 typed 속성으로 노출하고, 전체 record는 `raw`에 보존한다.
+
+표시용 helper는 기본 parsing 결과를 바꾸지 않는다. `cpyrhtDivCd` 원문은 모델의 `copyright_division_code`와 `raw`에 보존하고, 소비자가 명시적으로 `copyright_display_info()`를 호출할 때만 label/주의사항을 계산한다. `detailCommon2`의 `homepage`/`overview`, `detailInfo2`의 `infotext` 같은 HTML 조각은 `clean_tourapi_html()`로 plain text 정리를 opt-in 제공하되, 보안 sanitizer 역할은 앱에 남긴다.
+
 ## 예외 매핑
 
 ```text
@@ -165,6 +176,8 @@ TourApiError
 ├── TourApiServerError     # 5xx, resultCode 99/04 계열
 └── TourApiParseError      # JSON/XML 구조 또는 타입 변환 실패
 ```
+
+각 `TourApiError`는 `result_code`, `status_code`, `endpoint`, `service_name`, `failure_kind`를 optional metadata로 가진다. `failure_kind`는 `auth`, `rate_limit`, `request`, `no_data`, `server`, `parse` 같은 사용자 메시지 분기용 값을 사용한다. 기존 subclass 계층은 유지하므로 `except TourApiAuthError` catch 동작은 바뀌지 않는다. 예외 문자열, `repr`, metadata에는 `serviceKey` 원문을 남기지 않는다.
 
 ## 확장 원칙
 

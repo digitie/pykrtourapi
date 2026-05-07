@@ -5,7 +5,7 @@ from datetime import date
 import pytest
 from pydantic import ValidationError
 
-from pykrtourapi import Wgs84Coordinate
+from pykrtourapi import Page, Wgs84Coordinate
 from pykrtourapi.client import KrTourApiClient
 from pykrtourapi.enums import AreaCode, Arrange, ContentType, Language
 from pykrtourapi.exceptions import TourApiAuthError, TourApiNoDataError, TourApiRequestError
@@ -45,6 +45,26 @@ def sample_tour_item() -> dict[str, str]:
     }
 
 
+def test_page_context_defaults_are_backwards_compatible():
+    page = Page(items=(), total_count=0, page_no=1, num_of_rows=10, raw={})
+
+    assert page.context.service_name is None
+    assert page.context.endpoint is None
+    assert page.context.request_params == {}
+    assert page.context.collected_at is None
+    assert page.service_name is None
+    assert page.endpoint is None
+    assert page.has_next_page is False
+    assert page.next_page_no is None
+
+
+def test_page_next_page_helpers_use_pagination_metadata():
+    page = Page(items=(), total_count=11, page_no=2, num_of_rows=5, raw={})
+
+    assert page.has_next_page is True
+    assert page.next_page_no == 3
+
+
 def test_search_keyword_sends_filters_and_parses_item(fake_client_factory):
     client, session = fake_client_factory(FakeResponse(tour_payload(sample_tour_item())))
 
@@ -64,6 +84,19 @@ def test_search_keyword_sends_filters_and_parses_item(fake_client_factory):
     assert call["params"]["lDongRegnCd"] == "11"
     assert call["params"]["lDongSignguCd"] == "110"
     assert call["params"]["arrange"] == "Q"
+
+    assert page.context.service_name == "KorService2"
+    assert page.context.endpoint == "searchKeyword2"
+    assert page.context.collected_at is not None
+    assert page.context.collected_at.tzinfo is not None
+    assert page.context.request_params["MobileOS"] == "ETC"
+    assert page.context.request_params["MobileApp"] == "pykrtourapi"
+    assert page.context.request_params["_type"] == "json"
+    assert page.context.request_params["keyword"] == "궁"
+    assert page.context.request_params["contentTypeId"] == "12"
+    assert "serviceKey" not in page.context.request_params
+    assert page.endpoint == "searchKeyword2"
+    assert page.request_params == page.context.request_params
 
     item = page.items[0]
     assert item.content_id == "126508"
@@ -210,6 +243,10 @@ def test_detail_common_parses_detail(fake_client_factory):
     assert detail.homepage is not None
     assert detail.overview == "설명"
     assert detail.copyright_division_code == "Type1"
+    assert detail.context.service_name == "KorService2"
+    assert detail.context.endpoint == "detailCommon2"
+    assert detail.context.request_params["contentId"] == "126508"
+    assert "serviceKey" not in detail.context.request_params
 
 
 def test_detail_intro_info_and_images(fake_client_factory):
@@ -243,6 +280,9 @@ def test_detail_intro_info_and_images(fake_client_factory):
     assert intro_page.items[0].raw["infocenter"] == "안내"
     assert repeat_page.items[0].info_name == "코스"
     assert image_page.items[0].origin_img_url == "https://example.com/origin.jpg"
+    assert intro_page.context.endpoint == "detailIntro2"
+    assert repeat_page.context.endpoint == "detailInfo2"
+    assert image_page.context.endpoint == "detailImage2"
     assert session.calls[2]["params"]["imageYN"] == "Y"
     assert session.calls[2]["params"]["subImageYN"] == "N"
 
@@ -267,16 +307,84 @@ def test_sync_and_code_endpoints(fake_client_factory):
     assert lcls_page.items[0].name == "역사관광"
 
 
+def test_client_iter_pages_increments_page_no(fake_client_factory):
+    client, session = fake_client_factory(
+        FakeResponse(
+            tour_payload(
+                [{"code": "1", "name": "서울"}, {"code": "2", "name": "인천"}],
+                page_no=1,
+                num_of_rows=2,
+                total_count=3,
+            )
+        ),
+        FakeResponse(
+            tour_payload(
+                {"code": "3", "name": "대전"},
+                page_no=2,
+                num_of_rows=2,
+                total_count=3,
+            )
+        ),
+    )
+
+    pages = list(client.iter_pages(client.area_codes, num_of_rows=2))
+
+    assert [page.page_no for page in pages] == [1, 2]
+    assert [item.code for page in pages for item in page.items] == ["1", "2", "3"]
+    assert [call["params"]["pageNo"] for call in session.calls] == [1, 2]
+    assert all(call["params"]["numOfRows"] == 2 for call in session.calls)
+
+
+def test_client_iter_pages_no_data_is_empty_iterator(fake_client_factory):
+    client, session = fake_client_factory(
+        FakeResponse(tour_payload(None, result_code="03", result_msg="NO_DATA")),
+    )
+
+    pages = list(client.iter_pages(client.area_codes))
+
+    assert pages == []
+    assert session.calls[0]["params"]["pageNo"] == 1
+
+
+def test_client_iter_pages_max_items_stops_before_next_fetch(fake_client_factory):
+    client, session = fake_client_factory(
+        FakeResponse(
+            tour_payload(
+                [{"code": "1", "name": "서울"}, {"code": "2", "name": "인천"}],
+                page_no=1,
+                num_of_rows=2,
+                total_count=3,
+            )
+        ),
+        FakeResponse(
+            tour_payload(
+                {"code": "3", "name": "대전"},
+                page_no=2,
+                num_of_rows=2,
+                total_count=3,
+            )
+        ),
+    )
+
+    pages = list(client.iter_pages(client.area_codes, num_of_rows=2, max_items=2))
+
+    assert [page.page_no for page in pages] == [1]
+    assert len(session.calls) == 1
+
+
 def test_raw_endpoint_preserves_raw_records(fake_client_factory):
     rows = [{"custom": "value"}, {"custom": "value2"}]
     client, session = fake_client_factory(FakeResponse(tour_payload(rows)))
 
-    page = client.raw_endpoint("customEndpoint2", {"foo": "bar"})
+    page = client.raw_endpoint("customEndpoint2", {"foo": "bar", "serviceKey": "LEAK"})
 
     assert page.items[0]["custom"] == "value"
     assert page.items[1]["custom"] == "value2"
     assert session.calls[0]["url"].endswith("/customEndpoint2")
     assert session.calls[0]["params"]["foo"] == "bar"
+    assert page.context.endpoint == "customEndpoint2"
+    assert page.context.request_params["foo"] == "bar"
+    assert "serviceKey" not in page.context.request_params
 
 
 def test_env_and_language_errors(monkeypatch, fake_client_factory):

@@ -6,6 +6,8 @@ from pykrtourapi._http import DEFAULT_USER_AGENT, TourApiHttp, build_session
 from pykrtourapi.enums import MobileOS
 from pykrtourapi.exceptions import (
     TourApiAuthError,
+    TourApiError,
+    TourApiNoDataError,
     TourApiParseError,
     TourApiRateLimitError,
     TourApiRequestError,
@@ -13,6 +15,27 @@ from pykrtourapi.exceptions import (
 )
 
 from .conftest import FakeResponse, tour_payload
+
+
+def assert_error_metadata(
+    exc: TourApiError,
+    *,
+    failure_kind: str,
+    endpoint: str = "areaCode2",
+    service_name: str = "KorService2",
+    status_code: int | None = None,
+    result_code: str | None = None,
+) -> None:
+    assert exc.failure_kind == failure_kind
+    assert exc.endpoint == endpoint
+    assert exc.service_name == service_name
+    assert exc.status_code == status_code
+    assert exc.result_code == result_code
+    metadata = exc.metadata
+    assert metadata["failure_kind"] == failure_kind
+    assert "TEST_KEY" not in str(exc)
+    assert "TEST_KEY" not in repr(exc)
+    assert "TEST_KEY" not in repr(metadata)
 
 
 def test_common_request_params_and_endpoint_url(fake_client_factory):
@@ -49,8 +72,9 @@ def test_non_json_xml_service_key_error_maps_to_auth(fake_client_factory):
         FakeResponse(text=xml, json_error=ValueError("not json")),
     )
 
-    with pytest.raises(TourApiAuthError, match="SERVICE_KEY_IS_NOT_REGISTERED_ERROR"):
+    with pytest.raises(TourApiAuthError, match="SERVICE_KEY_IS_NOT_REGISTERED_ERROR") as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="auth", result_code="30")
 
 
 def test_result_code_03_returns_empty_page(fake_client_factory):
@@ -76,8 +100,9 @@ def test_result_code_0000_is_treated_as_success(fake_client_factory):
 
 def test_http_and_header_error_mapping(fake_client_factory):
     client, _session = fake_client_factory(FakeResponse({}, status_code=429, text="too many"))
-    with pytest.raises(TourApiRateLimitError):
+    with pytest.raises(TourApiRateLimitError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="rate_limit", status_code=429)
 
     client, _session = fake_client_factory(
         FakeResponse(
@@ -89,16 +114,18 @@ def test_http_and_header_error_mapping(fake_client_factory):
             }
         )
     )
-    with pytest.raises(TourApiServerError):
+    with pytest.raises(TourApiServerError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="server", result_code="99")
 
 
 def test_malformed_items_shape_raises_parse_error(fake_client_factory):
     payload = tour_payload("not-a-dict")
     client, _session = fake_client_factory(FakeResponse(payload))
 
-    with pytest.raises(TourApiParseError):
+    with pytest.raises(TourApiParseError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
 
 
 def test_build_session_and_empty_service_key():
@@ -119,30 +146,43 @@ def test_build_session_and_empty_service_key():
 
 def test_more_http_error_branches(fake_client_factory):
     client, _session = fake_client_factory(FakeResponse("not-object"))
-    with pytest.raises(TourApiParseError, match="root"):
+    with pytest.raises(TourApiParseError, match="root") as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
 
     client, _session = fake_client_factory(FakeResponse({"response": {}}))
-    with pytest.raises(TourApiParseError, match="response.header"):
+    with pytest.raises(TourApiParseError, match="response.header") as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
 
     client, _session = fake_client_factory(
         FakeResponse({"response": {"header": {"resultCode": "00"}, "body": []}})
     )
-    with pytest.raises(TourApiParseError, match="body"):
+    with pytest.raises(TourApiParseError, match="body") as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
 
-    client, _session = fake_client_factory(FakeResponse({}, status_code=401, text="denied"))
-    with pytest.raises(TourApiAuthError):
+    client, _session = fake_client_factory(
+        FakeResponse({}, status_code=401, text="denied TEST_KEY")
+    )
+    with pytest.raises(TourApiAuthError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="auth", status_code=401)
 
-    client, _session = fake_client_factory(FakeResponse({}, status_code=400, text="bad"))
-    with pytest.raises(TourApiRequestError):
+    client, _session = fake_client_factory(FakeResponse({}, status_code=403, text="forbidden"))
+    with pytest.raises(TourApiAuthError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="auth", status_code=403)
 
-    client, _session = fake_client_factory(FakeResponse({}, status_code=500, text="down"))
-    with pytest.raises(TourApiServerError):
+    client, _session = fake_client_factory(FakeResponse({}, status_code=400, text="bad TEST_KEY"))
+    with pytest.raises(TourApiRequestError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="request", status_code=400)
+
+    client, _session = fake_client_factory(FakeResponse({}, status_code=500, text="down TEST_KEY"))
+    with pytest.raises(TourApiServerError) as exc_info:
+        client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="server", status_code=500)
 
 
 def test_non_xml_json_parse_error_stays_parse_error(fake_client_factory):
@@ -150,8 +190,9 @@ def test_non_xml_json_parse_error_stays_parse_error(fake_client_factory):
         FakeResponse(text="not xml", json_error=ValueError("bad json")),
     )
 
-    with pytest.raises(TourApiParseError, match="not valid JSON"):
+    with pytest.raises(TourApiParseError, match="not valid JSON") as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
 
 
 def test_json_openapi_service_response_errors(fake_client_factory):
@@ -167,9 +208,48 @@ def test_json_openapi_service_response_errors(fake_client_factory):
             }
         )
     )
-    with pytest.raises(TourApiRateLimitError):
+    with pytest.raises(TourApiRateLimitError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="rate_limit", result_code="22")
 
     client, _session = fake_client_factory(FakeResponse({"OpenAPI_ServiceResponse": []}))
-    with pytest.raises(TourApiParseError):
+    with pytest.raises(TourApiParseError) as exc_info:
         client.area_codes()
+    assert_error_metadata(exc_info.value, failure_kind="parse")
+
+
+def test_json_result_code_request_error_metadata(fake_client_factory):
+    client, _session = fake_client_factory(
+        FakeResponse(
+            {
+                "response": {
+                    "header": {
+                        "resultCode": "10",
+                        "resultMsg": "INVALID_REQUEST_PARAMETER_ERROR",
+                    },
+                    "body": {},
+                }
+            }
+        )
+    )
+
+    with pytest.raises(TourApiRequestError) as exc_info:
+        client.area_codes()
+
+    assert_error_metadata(exc_info.value, failure_kind="request", result_code="10")
+
+
+def test_detail_no_data_error_metadata(fake_client_factory):
+    client, _session = fake_client_factory(
+        FakeResponse(tour_payload(None, result_code="03", result_msg="NO_DATA")),
+    )
+
+    with pytest.raises(TourApiNoDataError) as exc_info:
+        client.detail_common("missing")
+
+    assert_error_metadata(
+        exc_info.value,
+        failure_kind="no_data",
+        endpoint="detailCommon2",
+        result_code="03",
+    )

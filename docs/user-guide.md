@@ -177,6 +177,8 @@ schema = type(item).model_json_schema()
 
 모든 모델은 속성 접근을 지원하고, 원문 TourAPI record를 `raw`에 보존합니다. 공식 문서에 없거나 content type마다 달라지는 필드는 먼저 `raw`에서 확인하세요.
 
+목록 응답에는 호출 provenance도 함께 들어갑니다. `page.context.service_name`, `page.context.endpoint`, `page.context.request_params`, `page.context.collected_at`을 raw/serving 저장용 메타데이터로 사용할 수 있습니다. `request_params`에는 `MobileOS`, `MobileApp`, `_type`과 endpoint별 파라미터만 남고 `serviceKey` 원문은 포함되지 않습니다.
+
 자세한 내용은 [docs/pydantic-models.md](pydantic-models.md)를 참고하세요.
 
 ## 전체 OpenAPI Hub
@@ -191,6 +193,12 @@ hub = TourApiHubClient.from_env(mobile_app="my-travel-app")
 camping = hub.gocamping.based_list(facltNm="숲")
 photos = hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
 raw = hub.call("area_resource_demand", "areaTarSvcDemList", baseYm="202509", areaCd="11")
+related = hub.related_tour.search_keyword(
+    "뮤지엄산",
+    base_ym="202504",
+    area_cd="51",
+    signgu_cd="51130",
+)
 ```
 
 operation은 원문 이름과 snake_case alias를 모두 지원합니다.
@@ -213,7 +221,39 @@ Python식 파라미터 alias:
 | `mobile_app` | `MobileApp` |
 | `coordinate` | `mapX`, `mapY` |
 
+`related_tour` 서비스는 typed helper도 제공합니다. `hub.related_tour.area_based_list(...)`와 `hub.related_tour.search_keyword(...)`는 `Page[RelatedTourItem]`을 반환합니다. 이때 `area_cd`와 `signgu_cd`는 TarRlteTarService1의 TourAPI 지역 코드(`areaCd`, `signguCd`)이며 법정동코드가 아닙니다. 기존 generic `hub.call("related_tour", ...)`은 계속 raw `Page[Mapping]`을 반환합니다.
+
 서비스 key와 operation 전체 목록은 [docs/openapi-catalog.md](openapi-catalog.md)에 있습니다.
+
+## 페이지 반복
+
+`Page.has_next_page`와 `Page.next_page_no`는 `total_count`, `page_no`, `num_of_rows`를 기준으로 다음 페이지 여부를 계산합니다. 코드 캐시나 후보 조회처럼 여러 페이지를 읽어야 하는 흐름에서는 `iter_pages()`를 사용할 수 있습니다.
+
+```python
+for page in client.iter_pages(client.area_codes, num_of_rows=100, max_pages=20):
+    for code in page.items:
+        ...
+
+for page in hub.iter_pages("kor", "areaCode2", num_of_rows=100, max_pages=20):
+    for row in page.items:
+        ...
+```
+
+`max_pages` 또는 `max_items`를 지정하면 비정상 응답으로 인한 긴 반복을 제한할 수 있습니다. 목록 API의 `NO_DATA` 응답은 빈 iterator로 끝나며, 인증/쿼터/서버 오류는 기존 typed exception으로 그대로 올라옵니다.
+
+`related_tour` typed helper는 endpoint별 iterator도 제공합니다.
+
+```python
+for page in hub.related_tour.iter_search_keyword(
+    "뮤지엄산",
+    base_ym="202504",
+    area_cd="51",
+    signgu_cd="51130",
+    max_pages=10,
+):
+    for item in page.items:
+        ...
+```
 
 ## 다국어 서비스
 
@@ -260,6 +300,23 @@ TourApiError
 ├── TourApiServerError
 └── TourApiParseError
 ```
+
+모든 `TourApiError` 계열 예외에는 관리자 로그용 metadata가 optional 속성으로 들어갑니다. 기존 subclass catch 동작은 그대로 유지되므로 `except TourApiAuthError` 같은 분기는 바꾸지 않아도 됩니다.
+
+```python
+except TourApiError as exc:
+    logger.warning("tourapi_failed", extra={"tourapi": exc.metadata})
+    user_message = {
+        "auth": "TourAPI 인증 설정을 확인하세요.",
+        "rate_limit": "TourAPI 호출 한도에 도달했습니다.",
+        "no_data": "조회 가능한 관광정보가 없습니다.",
+        "server": "TourAPI 서버 응답이 불안정합니다.",
+        "request": "검색 조건을 다시 확인하세요.",
+        "parse": "TourAPI 응답을 해석하지 못했습니다.",
+    }.get(exc.failure_kind, "TourAPI 호출에 실패했습니다.")
+```
+
+`exc.metadata`에는 `result_code`, `status_code`, `endpoint`, `service_name`, `failure_kind`가 들어갑니다. `serviceKey` 원문은 예외 문자열, `repr`, metadata 어디에도 남기지 않습니다.
 
 ## CLI
 

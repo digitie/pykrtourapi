@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Callable, Iterator, Mapping
+from typing import Any, cast
 
-from ._convert import enum_value, to_int_or_none, to_wgs84_coordinate, without_none
+from ._convert import enum_value, strip_or_none, to_int_or_none, to_wgs84_coordinate, without_none
 from ._http import SessionLike, TourApiHttp
+from ._pagination import iter_paginated_pages
+from ._provenance import call_context
 from .client import DEFAULT_BASE_URL, DEFAULT_ENV_NAMES, _extract_items, _first_env
 from .enums import MobileOS
 from .exceptions import TourApiAuthError, TourApiRequestError
-from .models import Page, RawRecord
+from .models import Page, RawRecord, RelatedTourItem
 from .services import SERVICE_BY_KEY, SERVICE_DEFINITIONS, ServiceDefinition
 
 
@@ -72,7 +74,12 @@ class TourApiHubClient:
         except KeyError as exc:
             known = ", ".join(service.key for service in SERVICE_DEFINITIONS)
             raise TourApiRequestError(f"unknown TourAPI service {key!r}; known: {known}") from exc
-        return TourApiServiceClient(
+        client_class = (
+            RelatedTourServiceClient
+            if definition.key == "related_tour"
+            else TourApiServiceClient
+        )
+        return client_class(
             definition,
             service_key=self.service_key,
             mobile_os=self.mobile_os,
@@ -82,6 +89,12 @@ class TourApiHubClient:
             retries=self.retries,
             session=self.session,
         )
+
+    @property
+    def related_tour(self) -> RelatedTourServiceClient:
+        """Typed client for TarRlteTarService1 related-tour operations."""
+
+        return cast(RelatedTourServiceClient, self.service("related_tour"))
 
     def call(
         self,
@@ -93,6 +106,40 @@ class TourApiHubClient:
         """Call one operation from any registered service."""
 
         return self.service(service).call(operation, params=params, **kwargs)
+
+    def iter_pages(
+        self,
+        service: str,
+        operation: str,
+        params: Mapping[str, Any] | None = None,
+        *,
+        page_no: int = 1,
+        num_of_rows: int = 10,
+        max_pages: int | None = None,
+        max_items: int | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Page[RawRecord]]:
+        """Iterate generic Hub pages for one service operation."""
+
+        base_params = _without_page_params(params)
+
+        def get_page(next_page_no: int, page_size: int) -> Page[RawRecord]:
+            return self.call(
+                service,
+                operation,
+                params=base_params,
+                page_no=next_page_no,
+                num_of_rows=page_size,
+                **kwargs,
+            )
+
+        return iter_paginated_pages(
+            get_page,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
 
     def __getattr__(self, name: str) -> TourApiServiceClient:
         if name.startswith("_"):
@@ -149,22 +196,57 @@ class TourApiServiceClient:
         """Call an operation and return normalized raw item records."""
 
         endpoint = self._resolve_operation(operation)
-        request_params: dict[str, Any] = {}
-        if page_no is not None:
-            request_params["pageNo"] = page_no
-        if num_of_rows is not None:
-            request_params["numOfRows"] = num_of_rows
+        request_params = _page_params(params={}, page_no=page_no, num_of_rows=num_of_rows)
         if params:
             request_params.update(dict(params))
         request_params.update(_pythonic_params(kwargs))
         body = self._http.get(endpoint, params=without_none(request_params))
-        rows = _extract_items(body, endpoint)
+        rows = _extract_items(body, endpoint, service_name=self.definition.service_name)
         return Page(
             items=rows,
             total_count=to_int_or_none(body.get("totalCount")) or len(rows),
             page_no=to_int_or_none(body.get("pageNo")) or page_no or 1,
             num_of_rows=to_int_or_none(body.get("numOfRows")) or num_of_rows or len(rows),
             raw=body,
+            context=call_context(
+                service_name=self.definition.service_name,
+                endpoint=endpoint,
+                mobile_os=self._http.mobile_os,
+                mobile_app=self._http.mobile_app,
+                params=request_params,
+            ),
+        )
+
+    def iter_pages(
+        self,
+        operation: str,
+        params: Mapping[str, Any] | None = None,
+        *,
+        page_no: int = 1,
+        num_of_rows: int = 10,
+        max_pages: int | None = None,
+        max_items: int | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Page[RawRecord]]:
+        """Iterate generic pages for one operation in this service."""
+
+        base_params = _without_page_params(params)
+
+        def get_page(next_page_no: int, page_size: int) -> Page[RawRecord]:
+            return self.call(
+                operation,
+                params=base_params,
+                page_no=next_page_no,
+                num_of_rows=page_size,
+                **kwargs,
+            )
+
+        return iter_paginated_pages(
+            get_page,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+            max_pages=max_pages,
+            max_items=max_items,
         )
 
     def __getattr__(self, name: str) -> Callable[..., Page[RawRecord]]:
@@ -205,6 +287,168 @@ class TourApiServiceClient:
             ) from exc
 
 
+class RelatedTourServiceClient(TourApiServiceClient):
+    """Typed helper for TarRlteTarService1 related tourism records.
+
+    `areaCd` and `signguCd` are TourAPI region codes for this service, not legal-dong
+    codes. Pass them as `area_cd` and `signgu_cd` here; the request uses the official
+    TourAPI parameter names.
+    """
+
+    def area_based_list(
+        self,
+        *,
+        base_ym: str,
+        area_cd: str,
+        signgu_cd: str,
+        page_no: int | None = 1,
+        num_of_rows: int | None = 10,
+        **kwargs: Any,
+    ) -> Page[RelatedTourItem]:
+        """Fetch related tourist attractions by TourAPI region code.
+
+        `area_cd`/`signgu_cd` become `areaCd`/`signguCd`, which are TourAPI region
+        codes for TarRlteTarService1 and not legal-dong codes.
+        """
+
+        params = {
+            "baseYm": base_ym,
+            "areaCd": area_cd,
+            "signguCd": signgu_cd,
+        }
+        params.update(_pythonic_params(kwargs))
+        return self._typed_related_page(
+            "areaBasedList1",
+            params=params,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+        )
+
+    def search_keyword(
+        self,
+        keyword: str,
+        *,
+        base_ym: str,
+        area_cd: str,
+        signgu_cd: str,
+        page_no: int | None = 1,
+        num_of_rows: int | None = 10,
+        **kwargs: Any,
+    ) -> Page[RelatedTourItem]:
+        """Search related tourist attractions by keyword and TourAPI region code.
+
+        `area_cd`/`signgu_cd` become `areaCd`/`signguCd`, which are TourAPI region
+        codes for TarRlteTarService1 and not legal-dong codes.
+        """
+
+        params = {
+            "baseYm": base_ym,
+            "areaCd": area_cd,
+            "signguCd": signgu_cd,
+            "keyword": keyword,
+        }
+        params.update(_pythonic_params(kwargs))
+        return self._typed_related_page(
+            "searchKeyword1",
+            params=params,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+        )
+
+    def iter_area_based_list(
+        self,
+        *,
+        base_ym: str,
+        area_cd: str,
+        signgu_cd: str,
+        page_no: int = 1,
+        num_of_rows: int = 10,
+        max_pages: int | None = None,
+        max_items: int | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Page[RelatedTourItem]]:
+        """Iterate `area_based_list()` typed pages."""
+
+        def get_page(next_page_no: int, page_size: int) -> Page[RelatedTourItem]:
+            return self.area_based_list(
+                base_ym=base_ym,
+                area_cd=area_cd,
+                signgu_cd=signgu_cd,
+                page_no=next_page_no,
+                num_of_rows=page_size,
+                **kwargs,
+            )
+
+        return iter_paginated_pages(
+            get_page,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
+
+    def iter_search_keyword(
+        self,
+        keyword: str,
+        *,
+        base_ym: str,
+        area_cd: str,
+        signgu_cd: str,
+        page_no: int = 1,
+        num_of_rows: int = 10,
+        max_pages: int | None = None,
+        max_items: int | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Page[RelatedTourItem]]:
+        """Iterate `search_keyword()` typed pages."""
+
+        def get_page(next_page_no: int, page_size: int) -> Page[RelatedTourItem]:
+            return self.search_keyword(
+                keyword,
+                base_ym=base_ym,
+                area_cd=area_cd,
+                signgu_cd=signgu_cd,
+                page_no=next_page_no,
+                num_of_rows=page_size,
+                **kwargs,
+            )
+
+        return iter_paginated_pages(
+            get_page,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
+
+    def _typed_related_page(
+        self,
+        endpoint: str,
+        *,
+        params: Mapping[str, Any],
+        page_no: int | None,
+        num_of_rows: int | None,
+    ) -> Page[RelatedTourItem]:
+        request_params = _page_params(params=params, page_no=page_no, num_of_rows=num_of_rows)
+        body = self._http.get(endpoint, params=without_none(request_params))
+        rows = _extract_items(body, endpoint, service_name=self.definition.service_name)
+        parsed = tuple(_related_tour_item(row) for row in rows)
+        return Page(
+            items=parsed,
+            total_count=to_int_or_none(body.get("totalCount")) or len(parsed),
+            page_no=to_int_or_none(body.get("pageNo")) or page_no or 1,
+            num_of_rows=to_int_or_none(body.get("numOfRows")) or num_of_rows or len(parsed),
+            raw=body,
+            context=call_context(
+                service_name=self.definition.service_name,
+                endpoint=endpoint,
+                mobile_os=self._http.mobile_os,
+                mobile_app=self._http.mobile_app,
+                params=request_params,
+            ),
+        )
+
+
 def _operation_aliases(operations: tuple[str, ...]) -> dict[str, str]:
     aliases: dict[str, str] = {}
     counts: dict[str, int] = {}
@@ -224,6 +468,28 @@ def _snake_case(value: str) -> str:
     value = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", value)
     value = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
     return value.replace("__", "_").lower()
+
+
+def _page_params(
+    *,
+    params: Mapping[str, Any],
+    page_no: int | None,
+    num_of_rows: int | None,
+) -> dict[str, Any]:
+    request_params: dict[str, Any] = {}
+    if page_no is not None:
+        request_params["pageNo"] = page_no
+    if num_of_rows is not None:
+        request_params["numOfRows"] = num_of_rows
+    request_params.update(dict(params))
+    return request_params
+
+
+def _without_page_params(params: Mapping[str, Any] | None) -> dict[str, Any]:
+    cleaned = dict(params or {})
+    cleaned.pop("pageNo", None)
+    cleaned.pop("numOfRows", None)
+    return cleaned
 
 
 def _pythonic_params(params: Mapping[str, Any]) -> dict[str, Any]:
@@ -246,3 +512,26 @@ def _pythonic_params(params: Mapping[str, Any]) -> dict[str, Any]:
         else:
             converted[key] = value
     return converted
+
+
+def _related_tour_item(row: Mapping[str, Any]) -> RelatedTourItem:
+    return RelatedTourItem(
+        baseYm=strip_or_none(row.get("baseYm")),
+        tAtsCd=strip_or_none(row.get("tAtsCd")),
+        tAtsNm=strip_or_none(row.get("tAtsNm")),
+        areaCd=strip_or_none(row.get("areaCd")),
+        areaNm=strip_or_none(row.get("areaNm")),
+        signguCd=strip_or_none(row.get("signguCd")),
+        signguNm=strip_or_none(row.get("signguNm")),
+        rlteTatsCd=strip_or_none(row.get("rlteTatsCd")),
+        rlteTatsNm=strip_or_none(row.get("rlteTatsNm")),
+        rlteRegnCd=strip_or_none(row.get("rlteRegnCd")),
+        rlteRegnNm=strip_or_none(row.get("rlteRegnNm")),
+        rlteSignguCd=strip_or_none(row.get("rlteSignguCd")),
+        rlteSignguNm=strip_or_none(row.get("rlteSignguNm")),
+        rlteCtgryLclsNm=strip_or_none(row.get("rlteCtgryLclsNm")),
+        rlteCtgryMclsNm=strip_or_none(row.get("rlteCtgryMclsNm")),
+        rlteCtgrySclsNm=strip_or_none(row.get("rlteCtgrySclsNm")),
+        rlteRank=strip_or_none(row.get("rlteRank")),
+        raw=row,
+    )

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from datetime import date, datetime
 from typing import Any, TypeVar
 
@@ -17,6 +17,8 @@ from ._convert import (
     yn,
 )
 from ._http import SessionLike, TourApiHttp
+from ._pagination import iter_paginated_pages
+from ._provenance import call_context
 from ._time import parse_tour_datetime
 from .enums import SERVICE_NAME_BY_LANGUAGE, AreaCode, Arrange, ContentType, Language, MobileOS
 from .exceptions import TourApiAuthError, TourApiNoDataError, TourApiParseError, TourApiRequestError
@@ -105,6 +107,40 @@ class KrTourApiClient:
         """Call a TourAPI endpoint and return normalized raw item mappings."""
 
         return self._get_page(endpoint, dict(params or {}), lambda row: row)
+
+    def iter_pages(
+        self,
+        fetch_page: Callable[..., Page[T]],
+        *args: Any,
+        page_no: int = 1,
+        num_of_rows: int = 10,
+        max_pages: int | None = None,
+        max_items: int | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Page[T]]:
+        """Iterate a page-returning typed client method.
+
+        The helper follows `Page.total_count`, `page_no`, and `num_of_rows`.
+        `max_pages` or `max_items` can be set as an extra guard for unusual API
+        responses. NO_DATA list responses produce an empty iterator, while TourAPI
+        auth, quota, and server errors are raised unchanged.
+        """
+
+        def get_page(next_page_no: int, page_size: int) -> Page[T]:
+            return fetch_page(
+                *args,
+                page_no=next_page_no,
+                num_of_rows=page_size,
+                **kwargs,
+            )
+
+        return iter_paginated_pages(
+            get_page,
+            page_no=page_no,
+            num_of_rows=num_of_rows,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
 
     def area_based_list(
         self,
@@ -312,8 +348,14 @@ class KrTourApiClient:
             _tour_detail,
         )
         if not page.items:
-            raise TourApiNoDataError(f"detailCommon2 returned no item for content_id={content_id}")
-        return page.items[0]
+            raise TourApiNoDataError(
+                f"detailCommon2 returned no item for content_id={content_id}",
+                result_code="03",
+                endpoint="detailCommon2",
+                service_name=self.service_name,
+                failure_kind="no_data",
+            )
+        return page.items[0].model_copy(update={"context": page.context})
 
     def detail_intro(
         self,
@@ -553,17 +595,33 @@ class KrTourApiClient:
         parser: Callable[[Mapping[str, Any]], T],
     ) -> Page[T]:
         body = self._http.get(endpoint, params=params)
-        rows = _extract_items(body, endpoint)
+        rows = _extract_items(body, endpoint, service_name=self.service_name)
         try:
             parsed = tuple(parser(row) for row in rows)
         except (TypeError, ValueError) as exc:
-            raise TourApiParseError(f"{endpoint}: failed to parse item: {exc}") from exc
+            raise TourApiParseError(
+                f"{endpoint}: failed to parse item: {exc}",
+                endpoint=endpoint,
+                service_name=self.service_name,
+                failure_kind="parse",
+            ) from exc
         return Page(
             items=parsed,
             total_count=to_int_or_none(body.get("totalCount")) or len(parsed),
-            page_no=to_int_or_none(body.get("pageNo")) or 1,
-            num_of_rows=to_int_or_none(body.get("numOfRows")) or len(parsed),
+            page_no=to_int_or_none(body.get("pageNo")) or to_int_or_none(params.get("pageNo")) or 1,
+            num_of_rows=(
+                to_int_or_none(body.get("numOfRows"))
+                or to_int_or_none(params.get("numOfRows"))
+                or len(parsed)
+            ),
             raw=body,
+            context=call_context(
+                service_name=self.service_name,
+                endpoint=endpoint,
+                mobile_os=self.mobile_os,
+                mobile_app=self.mobile_app,
+                params=params,
+            ),
         )
 
 
@@ -601,7 +659,12 @@ def _resolve_coordinate(
     return Wgs84Coordinate(longitude=map_x, latitude=map_y)
 
 
-def _extract_items(body: Mapping[str, Any], endpoint: str) -> tuple[Mapping[str, Any], ...]:
+def _extract_items(
+    body: Mapping[str, Any],
+    endpoint: str,
+    *,
+    service_name: str | None = None,
+) -> tuple[Mapping[str, Any], ...]:
     items = body.get("items")
     if items in (None, "", []):
         return ()
@@ -616,7 +679,12 @@ def _extract_items(body: Mapping[str, Any], endpoint: str) -> tuple[Mapping[str,
         return (item_data,)
     if isinstance(item_data, list) and all(isinstance(item, Mapping) for item in item_data):
         return tuple(item_data)
-    raise TourApiParseError(f"{endpoint}: response.body.items.item was not an object or list")
+    raise TourApiParseError(
+        f"{endpoint}: response.body.items.item was not an object or list",
+        endpoint=endpoint,
+        service_name=service_name,
+        failure_kind="parse",
+    )
 
 
 def _tour_item(row: Mapping[str, Any]) -> TourItem:

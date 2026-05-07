@@ -151,3 +151,53 @@
 **규칙:** dict 변환은 `model_dump()`, JSON 변환은 `model_dump_json()`, 수정 사본은 `model_copy(update=...)`로 설명한다. 원문 TourAPI 필드는 `raw` 보존 규칙을 함께 적는다.
 
 **가드레일:** `test_user_docs_cover_public_model_usage`.
+
+## 호출 provenance에 인증키를 남기기
+
+**실수:** 외부 앱이 raw/serving 저장을 쉽게 하도록 요청 context를 남기면서 TourAPI `serviceKey`까지 함께 저장한다.
+
+**증상:** 응답 payload, 로그, 캐시, downstream 저장소에 인증키 원문이 노출된다.
+
+**규칙:** `Page.context.request_params`에는 `MobileOS`, `MobileApp`, `_type`과 endpoint별 파라미터만 남긴다. `serviceKey` 또는 `service_key` 계열 키는 사용자가 직접 params에 넣어도 context에서 제거한다.
+
+**가드레일:** `test_search_keyword_sends_filters_and_parses_item`, `test_raw_endpoint_preserves_raw_records`, `test_hub_call_by_service_key_and_operation_alias`.
+
+## TarRlteTarService1 지역 코드를 법정동코드로 설명하기
+
+**실수:** 관광지별 연관 관광지 서비스의 `areaCd`/`signguCd`를 `lDongRegnCd`/`lDongSignguCd` 같은 법정동코드와 같은 것으로 문서화한다.
+
+**증상:** TripMate 같은 소비자가 다른 코드 체계를 섞어 저장하거나, 법정동 필터 UI의 값을 관련 관광지 API에 그대로 넘긴다.
+
+**규칙:** `RelatedTourItem`과 `RelatedTourServiceClient` docstring에는 `areaCd`/`signguCd`가 TarRlteTarService1의 TourAPI 지역 코드이며 법정동코드가 아니라고 명시한다.
+
+**가드레일:** `test_related_tour_area_based_list_returns_typed_single_item`, `test_related_tour_search_keyword_returns_typed_list_items`.
+
+## 페이지 반복을 각 소비자 앱에서 따로 구현하기
+
+**실수:** `totalCount`, `pageNo`, `numOfRows` 계산을 TripMate 같은 소비자 앱마다 다시 작성한다.
+
+**증상:** 마지막 페이지를 누락하거나, `NO_DATA` 응답을 오류로 다루거나, 비정상 pagination metadata에서 긴 반복이 생긴다.
+
+**규칙:** `Page.has_next_page`/`next_page_no`와 client `iter_pages()` 계열 helper를 사용한다. 긴 반복을 막아야 하는 배치 작업에는 `max_pages` 또는 `max_items` guard를 둔다.
+
+**가드레일:** `test_client_iter_pages_increments_page_no`, `test_client_iter_pages_no_data_is_empty_iterator`, `test_hub_iter_pages_increments_page_no_for_generic_call`.
+
+## 예외 메시지만 보고 사용자 오류를 분기하기
+
+**실수:** 외부 앱이 `str(exc)`를 파싱하거나 자체 exception mapping wrapper를 만들어 인증, 쿼터, 요청 오류, 서버 오류, 파싱 오류를 다시 분류한다.
+
+**증상:** 관리자 로그와 사용자 메시지가 섞이고, TourAPI `resultCode`/HTTP status/endpoint 정보가 사라지거나 인증키 원문이 로그에 남을 위험이 생긴다.
+
+**규칙:** 기존 `TourApiAuthError` 같은 subclass catch는 유지하되, 모든 `TourApiError`에는 `result_code`, `status_code`, `endpoint`, `service_name`, `failure_kind` metadata를 채운다. 사용자 메시지는 `failure_kind`로 분기하고, 관리자 로그에는 `exc.metadata`만 남긴다. 예외 문자열, `repr`, metadata에는 `serviceKey` 원문을 남기지 않는다.
+
+**가드레일:** `test_more_http_error_branches`, `test_non_json_xml_service_key_error_maps_to_auth`, `test_json_openapi_service_response_errors`, `test_json_result_code_request_error_metadata`, `test_detail_no_data_error_metadata`.
+
+## KTO 표시 정책 문자열을 앱마다 하드코딩하기
+
+**실수:** `cpyrhtDivCd` 표시 문구와 `homepage`/`overview`/`infotext` HTML 정리를 TripMate 같은 소비자 앱마다 별도 매핑과 정규식으로 구현한다.
+
+**증상:** KTO 저작권 코드 원문을 잃거나, 알 수 없는 코드가 빈 문구로 표시되거나, TourAPI HTML 조각이 앱별로 다르게 정리된다.
+
+**규칙:** parsing 결과와 `raw`는 그대로 보존하고, 표시가 필요한 시점에만 `copyright_display_info()`와 `clean_tourapi_html()` helper를 명시적으로 호출한다. `clean_tourapi_html()`은 보안 sanitizer가 아니므로 HTML 렌더링 전 앱 sanitizer는 계속 별도로 둔다.
+
+**가드레일:** `test_copyright_display_info_preserves_known_and_unknown_codes`, `test_clean_tourapi_html_returns_plain_display_text`, `test_display_helpers_are_opt_in_and_keep_raw_fields`.
