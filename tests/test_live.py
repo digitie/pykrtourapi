@@ -18,8 +18,9 @@ def _service_key() -> str:
 
 
 def test_live_korean_area_codes_returns_tourapi_shape():
+    key = _service_key()
     client = KrTourApiClient(
-        _service_key(),
+        key,
         mobile_app="pykrtourapi-live-test",
         timeout=20,
     )
@@ -30,16 +31,32 @@ def test_live_korean_area_codes_returns_tourapi_shape():
     assert page.num_of_rows >= 1
     assert page.total_count >= len(page.items)
     assert isinstance(page.raw, dict)
+    assert page.context.service_name == "KorService2"
+    assert page.context.endpoint == "areaCode2"
+    assert page.context.request_params["MobileApp"] == "pykrtourapi-live-test"
+    assert page.context.request_params["numOfRows"] == 5
+    assert page.context.collected_at is not None
+    assert "serviceKey" not in page.context.request_params
+    assert key not in repr(page.context.request_params)
     for item in page.items:
         assert item.raw
 
 
 def test_live_unsubscribed_foreign_service_maps_to_auth_error():
+    key = _service_key()
     hub = TourApiHubClient(
-        _service_key(),
+        key,
         mobile_app="pykrtourapi-live-test",
         timeout=20,
     )
 
-    with pytest.raises(TourApiAuthError, match="403|SERVICE|AUTH|KEY|SERVICE_KEY"):
+    with pytest.raises(TourApiAuthError, match="403|SERVICE|AUTH|KEY|SERVICE_KEY") as exc_info:
         hub.eng.area_code(num_of_rows=1)
+
+    exc = exc_info.value
+    assert exc.failure_kind == "auth"
+    assert exc.endpoint == "areaCode2"
+    assert exc.service_name == "EngService2"
+    assert key not in str(exc)
+    assert key not in repr(exc)
+    assert key not in repr(exc.metadata)

@@ -58,6 +58,15 @@ class Wgs84Coordinate(TourApiModel):
         return {"mapX": self.longitude, "mapY": self.latitude}
 
 
+class TourApiCallContext(TourApiModel):
+    """Metadata describing the TourAPI call that produced a response."""
+
+    service_name: str | None = None
+    endpoint: str | None = None
+    request_params: RawRecord = Field(default_factory=dict)
+    collected_at: datetime | None = None
+
+
 class Page(TourApiModel, Generic[T]):
     """A paginated TourAPI response."""
 
@@ -66,10 +75,39 @@ class Page(TourApiModel, Generic[T]):
     page_no: int
     num_of_rows: int
     raw: RawRecord = Field(repr=False)
+    context: TourApiCallContext = Field(default_factory=TourApiCallContext)
 
     @property
     def is_empty(self) -> bool:
         return not self.items
+
+    @property
+    def has_next_page(self) -> bool:
+        if self.num_of_rows <= 0:
+            return False
+        return self.page_no * self.num_of_rows < self.total_count
+
+    @property
+    def next_page_no(self) -> int | None:
+        if not self.has_next_page:
+            return None
+        return self.page_no + 1
+
+    @property
+    def service_name(self) -> str | None:
+        return self.context.service_name
+
+    @property
+    def endpoint(self) -> str | None:
+        return self.context.endpoint
+
+    @property
+    def request_params(self) -> RawRecord:
+        return self.context.request_params
+
+    @property
+    def collected_at(self) -> datetime | None:
+        return self.context.collected_at
 
 
 class TourItem(TourApiModel):
@@ -113,6 +151,34 @@ class TourItem(TourApiModel):
         return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
 
 
+class RelatedTourItem(TourApiModel):
+    """Related-tour record from TarRlteTarService1.
+
+    `areaCd` and `signguCd` are TourAPI region codes for this service, not legal-dong
+    codes. Legal-dong code fields use names such as `lDongRegnCd` in other TourAPI
+    services.
+    """
+
+    baseYm: str | None
+    tAtsCd: str | None
+    tAtsNm: str | None
+    areaCd: str | None
+    areaNm: str | None
+    signguCd: str | None
+    signguNm: str | None
+    rlteTatsCd: str | None
+    rlteTatsNm: str | None
+    rlteRegnCd: str | None
+    rlteRegnNm: str | None
+    rlteSignguCd: str | None
+    rlteSignguNm: str | None
+    rlteCtgryLclsNm: str | None
+    rlteCtgryMclsNm: str | None
+    rlteCtgrySclsNm: str | None
+    rlteRank: str | None
+    raw: RawRecord = Field(repr=False)
+
+
 class TourDetail(TourApiModel):
     """Common detail information for one content item."""
 
@@ -145,6 +211,7 @@ class TourDetail(TourApiModel):
     modified_time: datetime | None
     copyright_division_code: str | None
     raw: RawRecord = Field(repr=False)
+    context: TourApiCallContext = Field(default_factory=TourApiCallContext)
 
     @property
     def coordinate(self) -> Wgs84Coordinate | None:

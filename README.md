@@ -15,6 +15,8 @@
 - `Wgs84Coordinate`로 위경도 표준화: `longitude`/`latitude`를 TourAPI `mapX`/`mapY`로 변환
 - `items.item`이 빈 값, 단일 object, list로 오는 차이를 내부에서 정규화
 - HTTP status, TourAPI `resultCode`, XML 인증 오류를 typed exception으로 매핑
+- 예외 metadata로 관리자 로그와 사용자 메시지 분리 지원
+- KTO 이미지 저작권 코드와 HTML형 설명 필드를 앱에서 표시하기 위한 opt-in helper 제공
 - 기본 테스트는 실제 API를 호출하지 않는 offline mock 방식
 
 ## 설치
@@ -111,9 +113,36 @@ nearby_pet = hub.pet.location_based_list(
     coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
     radius=1000,
 )
+
+related = hub.related_tour.area_based_list(
+    base_ym="202504",
+    area_cd="51",
+    signgu_cd="51130",
+)
 ```
 
 `page_no`, `num_of_rows`, `content_id`, `content_type_id`, `coordinate`는 Python식 이름으로 넘길 수 있고, 내부에서 TourAPI 원문 파라미터로 변환됩니다. 전체 서비스 key와 operation 목록은 [docs/openapi-catalog.md](docs/openapi-catalog.md)에 정리되어 있습니다.
+
+`related_tour`의 `area_based_list()`와 `search_keyword()`는 `Page[RelatedTourItem]`을 반환하는 typed helper입니다. 기존 generic `hub.call("related_tour", ...)` 경로는 원래처럼 `Page[Mapping]`을 반환합니다.
+
+페이지 반복은 client가 대신 처리할 수 있습니다. `Page.has_next_page`/`next_page_no`는 `total_count`, `page_no`, `num_of_rows` 기준으로 계산되며, iterator에는 `max_pages` 또는 `max_items` guard를 둘 수 있습니다.
+
+```python
+for page in client.iter_pages(client.area_codes, num_of_rows=100, max_pages=20):
+    cache_codes(page.items)
+
+for page in hub.iter_pages("kor", "areaCode2", num_of_rows=100, max_pages=20):
+    cache_raw_codes(page.items)
+
+for page in hub.related_tour.iter_area_based_list(
+    base_ym="202504",
+    area_cd="51",
+    signgu_cd="51130",
+    num_of_rows=50,
+    max_pages=10,
+):
+    store_related(page.items)
+```
 
 ## Pydantic 모델
 
@@ -130,7 +159,30 @@ schema = type(item).model_json_schema()
 
 TourAPI 원문 응답은 각 모델의 `raw` 필드에 보존합니다. 아직 안정적으로 모델링하지 않은 content-type별 필드는 `raw`에서 확인하세요.
 
+목록 응답의 호출 provenance는 `Page.context`에 보존합니다. `service_name`, `endpoint`, `request_params`, `collected_at`을 제공하며, `request_params`에는 `MobileOS`, `MobileApp`, `_type`과 endpoint별 파라미터만 남기고 `serviceKey` 원문은 저장하지 않습니다.
+
 모델 직렬화, JSON schema, frozen 모델 사용법은 [docs/pydantic-models.md](docs/pydantic-models.md)에 더 자세히 정리했습니다.
+
+## 표시 helper
+
+`cpyrhtDivCd`는 `TourItem`, `TourDetail`, `ImageInfo`의 `copyright_division_code`에 원문 코드로 보존됩니다. 앱에서 별도 문자열 매핑을 만들지 않도록 `copyright_display_info()`가 표시 label과 주의사항을 반환합니다. 알 수 없는 코드는 `raw_code`와 `code`에 그대로 남겨 후속 확인이 가능하게 합니다.
+
+```python
+from pykrtourapi import clean_tourapi_html, copyright_display_info
+
+image = client.detail_images("126508").items[0]
+copyright_info = copyright_display_info(image.copyright_division_code)
+print(copyright_info.label, copyright_info.notice)
+
+detail = client.detail_common("126508")
+overview_text = clean_tourapi_html(detail.overview)
+homepage_text = clean_tourapi_html(detail.homepage)
+
+repeat = client.detail_info("126508", "25").items[0]
+info_text = clean_tourapi_html(repeat.info_text)
+```
+
+`clean_tourapi_html()`은 `detailCommon2`의 `homepage`/`overview`, `detailInfo2`의 `infotext`처럼 HTML 조각이 섞일 수 있는 문자열을 plain text로 정리하는 opt-in helper입니다. 보안 sanitizer가 아니므로 HTML을 그대로 렌더링하는 앱은 자체 sanitizer를 계속 적용하세요. 기본 parsing 결과와 각 모델의 `raw`는 바뀌지 않습니다.
 
 ## 좌표 규칙
 
@@ -167,6 +219,8 @@ page = client.area_based_list(
 - `Language`, `MobileOS`, `Arrange`
 - `AreaCode`, `ContentType`
 - `Wgs84Coordinate`
+- `RelatedTourItem`
+- `CopyrightDisplayInfo`, `copyright_display_info`, `clean_tourapi_html`
 - `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput`
 
 ## 다른 언어 서비스
@@ -178,6 +232,10 @@ client = KrTourApiClient.from_env(language="en")  # EngService2
 ```
 
 지원 값: `ko`, `en`, `ja`/`jp`, `zh-cn`/`zh`, `zh-tw`, `de`, `fr`, `es`, `ru`
+
+## 예외 metadata
+
+모든 `TourApiError` 계열 예외는 기존 `except TourApiAuthError` 같은 catch 동작을 유지하면서 `result_code`, `status_code`, `endpoint`, `service_name`, `failure_kind` metadata를 제공합니다. 관리자 로그에는 `exc.metadata`를 남기고, 사용자 메시지는 `failure_kind`로 분기할 수 있습니다. `serviceKey` 원문은 예외 문자열, `repr`, metadata에 포함하지 않습니다.
 
 ## CLI
 
