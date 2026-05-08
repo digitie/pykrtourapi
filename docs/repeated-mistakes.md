@@ -201,3 +201,15 @@
 **규칙:** parsing 결과와 `raw`는 그대로 보존하고, 표시가 필요한 시점에만 `copyright_display_info()`와 `clean_tourapi_html()` helper를 명시적으로 호출한다. `clean_tourapi_html()`은 보안 sanitizer가 아니므로 HTML 렌더링 전 앱 sanitizer는 계속 별도로 둔다.
 
 **가드레일:** `test_copyright_display_info_preserves_known_and_unknown_codes`, `test_clean_tourapi_html_returns_plain_display_text`, `test_display_helpers_are_opt_in_and_keep_raw_fields`.
+
+## Windows PowerShell에서 파일 검색과 UTF-8 문서 읽기를 기본값에 맡기기
+
+**실수:** 이 환경에서 `rg` 실행 권한이 막혀 있는데도 반복해서 `rg`를 시도하거나, UTF-8 문서를 PowerShell 기본 출력 인코딩으로 읽는다.
+
+**증상:** 파일 목록/검색 단계에서 불필요하게 막히고, 한국어 문서가 깨져 보여 실제 내용과 다른 문제처럼 오해한다.
+
+**원인:** Windows PowerShell의 실행 정책/권한과 기본 콘솔 인코딩을 확인하지 않고, 평소 쓰는 검색/출력 명령을 그대로 적용한다.
+
+**규칙:** `rg`가 권한 문제로 막힌 환경에서는 PowerShell 파일 목록과 검색으로 우회한다. 문서 파일은 항상 `Get-Content -Encoding UTF8` 또는 UTF-8을 명시하는 동등한 명령으로 읽는다.
+
+**가드레일:** 문서/파일 조사 단계에서 `rg` 실패가 보이면 즉시 `Get-ChildItem -Recurse`와 `Select-String` 계열로 전환하고, 한국어 문서는 `Get-Content -Raw -Encoding UTF8`로 재확인한다.
