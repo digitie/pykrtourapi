@@ -12,7 +12,7 @@
 - `KorService2` typed wrapper: 지역/위치/키워드/행사/숙박/상세/이미지/동기화/코드 조회
 - `TourApiHubClient`: 공식 활용신청 목록 27개 서비스 전체 operation generic 호출
 - Pydantic v2 기반 frozen 응답 모델: `model_dump()`, `model_dump_json()`, `model_json_schema()` 지원
-- `Wgs84Coordinate`로 위경도 표준화: `longitude`/`latitude`를 TourAPI `mapX`/`mapY`로 변환
+- `pykrtour.PlaceCoordinate`로 위경도 표준화: `lon`/`lat`를 TourAPI `mapX`/`mapY`로 변환
 - `items.item`이 빈 값, 단일 object, list로 오는 차이를 내부에서 정규화
 - HTTP status, TourAPI `resultCode`, XML 인증 오류를 typed exception으로 매핑
 - 예외 metadata로 관리자 로그와 사용자 메시지 분리 지원
@@ -27,7 +27,7 @@
 pip install -e ".[dev]"
 ```
 
-패키지 런타임 의존성은 `requests`, `pydantic>=2.7`, Windows용 `tzdata`입니다.
+패키지 런타임 의존성은 `requests`, `pydantic>=2.7`, `pykrtour>=0.1.5`, Windows용 `tzdata`입니다.
 
 ## 인증키
 
@@ -101,7 +101,7 @@ print(detail.overview)
 `TourApiHubClient`는 `api.visitkorea.or.kr/#/useUtilExercises`의 메뉴얼 27개 기준 전체 서비스를 generic 방식으로 호출합니다. 서비스별 파라미터는 메뉴얼 원문 이름을 그대로 전달하고, 결과는 공통 `Page[Mapping]`으로 받습니다.
 
 ```python
-from pykrtourapi import TourApiHubClient, Wgs84Coordinate
+from pykrtourapi import PlaceCoordinate, TourApiHubClient
 
 hub = TourApiHubClient.from_env(mobile_app="my-travel-app")
 
@@ -110,7 +110,7 @@ camping = hub.gocamping.based_list(facltNm="숲")
 photos = hub.photo_gallery.gallery_search_list(galSearchKeyword="서울")
 
 nearby_pet = hub.pet.location_based_list(
-    coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+    coordinate=PlaceCoordinate(lon=126.9769, lat=37.5796),
     radius=1000,
 )
 
@@ -186,19 +186,19 @@ info_text = clean_tourapi_html(repeat.info_text)
 
 ## 좌표 규칙
 
-TourAPI 원문은 `mapX=경도`, `mapY=위도`를 사용합니다. `pykrtourapi`의 public API는 표준 GIS 이름인 `longitude`/`latitude`를 우선합니다.
+TourAPI 원문은 `mapX=경도`, `mapY=위도`를 사용합니다. `pykrtourapi`의 public API는 `pykrtour.PlaceCoordinate`를 직접 사용하며, 축 순서는 `(lon, lat)`입니다.
 
 ```python
-from pykrtourapi import Wgs84Coordinate
+from pykrtourapi import PlaceCoordinate
 
-coord = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+coord = PlaceCoordinate(lon=126.9769, lat=37.5796)
 
 client.location_based_list(coordinate=coord, radius=1000)
 client.location_based_list(coordinate=(126.9769, 37.5796), radius=1000)
 client.location_based_list(map_x=126.9769, map_y=37.5796, radius=1000)  # 기존 호환
 ```
 
-튜플 좌표는 `(longitude, latitude)` 순서입니다. 다른 지도 라이브러리의 `(lat, lon)` 순서와 섞지 않도록 주의하세요.
+튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서입니다. 다른 지도 라이브러리의 `(lat, lon)` 순서와 섞지 않도록 주의하세요. 기존 `Wgs84Coordinate` 이름은 `PlaceCoordinate`와 같은 클래스 alias로 남겨 둡니다.
 
 ## Enum과 타입
 
@@ -218,7 +218,7 @@ page = client.area_based_list(
 
 - `Language`, `MobileOS`, `Arrange`
 - `AreaCode`, `ContentType`
-- `Wgs84Coordinate`
+- `PlaceCoordinate`, `Wgs84Coordinate` (`PlaceCoordinate` alias)
 - `RelatedTourItem`
 - `CopyrightDisplayInfo`, `copyright_display_info`, `clean_tourapi_html`
 - `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput`

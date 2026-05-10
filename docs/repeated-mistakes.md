@@ -128,9 +128,9 @@
 
 **증상:** 위치 기반 검색 결과가 엉뚱한 지역으로 나오거나 반경 검색이 비어 있다.
 
-**규칙:** public API에서는 `Wgs84Coordinate(longitude=..., latitude=...)`를 우선 사용한다. 튜플 좌표는 `(longitude, latitude)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=longitude`, `mapY=latitude`로 변환한다.
+**규칙:** public API에서는 `pykrtour.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. `Wgs84Coordinate`는 같은 클래스 alias로만 둔다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=lon`, `mapY=lat`로 변환한다.
 
-**가드레일:** `test_wgs84_coordinate_normalization`, `test_location_accepts_standard_coordinate_inputs`.
+**가드레일:** `test_place_coordinate_is_public_coordinate_type`, `test_location_accepts_standard_coordinate_inputs`.
 
 ## 문서 링크만 추가하고 파일을 만들지 않기
 
@@ -190,9 +190,9 @@
 
 **원인:** 변경량을 줄이는 것을 동작 소유권을 가져오는 것보다 우선해서, 이 패키지가 책임져야 할 구현을 중간 계층 뒤에 남겨 둔다.
 
-**규칙:** 라이선스와 출처가 확인되고 이 패키지의 책임 범위에 맞는 구현이면 불필요한 wrapper를 만들지 말고 `pykrtourapi` 코드와 테스트에 직접 반영한다. 단순 최소 수정보다 검증된 동작을 패키지 안에서 소유하는 쪽을 우선하되, public API 표면은 기존 스타일과 타입 규칙에 맞춘다.
+**규칙:** 공통 POI/좌표 값 객체처럼 `pykrtour`가 소유한 개념은 `pykrtourapi`에 mirror class나 변환 wrapper를 만들지 말고 `pykrtour` 타입을 파라미터와 반환값에 직접 사용한다. 필요한 alias나 provider key 지원은 `pykrtour`에 보강하고, TourAPI 요청명으로 바꾸는 마지막 단계만 `pykrtourapi`에 둔다.
 
-**가드레일:** 외부 구현을 가져올 때는 원 구현이 해결하던 edge case를 offline test fixture로 먼저 옮긴다. 출처나 근거가 필요한 경우 문서 또는 짧은 코드 주석에 남기고, 얇은 위임 함수만 추가된 변경은 실제 로직과 테스트가 `pykrtourapi` 안에 있는지 리뷰한다.
+**가드레일:** 공통 구현을 가져올 때는 원 구현이 해결하던 edge case를 offline test fixture로 먼저 옮긴다. 출처나 근거가 필요한 경우 문서 또는 짧은 코드 주석에 남기고, 별도 wrapper만 추가된 변경은 실제 public 타입이 `pykrtour` 타입인지 리뷰한다.
 
 ## 예외 메시지만 보고 사용자 오류를 분기하기
 

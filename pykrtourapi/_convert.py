@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import date, datetime
 from enum import Enum
 from typing import Any
-
-from .models import Wgs84Coordinate
 
 
 def strip_or_none(value: object) -> str | None:
@@ -52,34 +49,6 @@ def to_float_or_none(value: object) -> float | None:
         return float(text)
     except ValueError:
         return None
-
-
-def to_wgs84_coordinate(
-    value: Wgs84Coordinate | tuple[float, float] | Mapping[str, Any],
-    *,
-    field: str = "coordinate",
-) -> Wgs84Coordinate:
-    """Normalize coordinate inputs to a WGS84 longitude/latitude object.
-
-    Tuple input is interpreted as `(longitude, latitude)`. Mapping input accepts
-    `longitude`/`latitude`, `lon`/`lat`, or TourAPI's `mapX`/`mapY`.
-    """
-
-    if isinstance(value, Wgs84Coordinate):
-        return value
-    if isinstance(value, tuple):
-        if len(value) != 2:
-            raise ValueError(f"{field} tuple must be (longitude, latitude)")
-        return Wgs84Coordinate(longitude=value[0], latitude=value[1])
-    if isinstance(value, Mapping):
-        lon = value.get("longitude", value.get("lon", value.get("mapX", value.get("map_x"))))
-        lat = value.get("latitude", value.get("lat", value.get("mapY", value.get("map_y"))))
-        if lon is None or lat is None:
-            raise ValueError(
-                f"{field} mapping requires longitude/latitude, lon/lat, or mapX/mapY"
-            )
-        return Wgs84Coordinate(longitude=float(lon), latitude=float(lat))
-    raise TypeError(f"{field} must be Wgs84Coordinate, (longitude, latitude), or mapping")
 
 
 def to_yyyymmdd(value: str | date | datetime | None, *, field: str) -> str | None:

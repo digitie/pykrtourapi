@@ -78,10 +78,11 @@ typed client와 Hub는 모두 pagination iterator를 제공한다. `Page.has_nex
 - `AreaCode`: 국문 서비스 지역 코드
 - `ContentType`: 국문 서비스 content type 코드
 - `Arrange`, `MobileOS`
-- `Wgs84Coordinate`: WGS84 경도/위도 객체
+- `PlaceCoordinate`: `pykrtour`의 WGS84 경도/위도 객체
+- `Wgs84Coordinate`: 기존 호환용 `PlaceCoordinate` alias
 - `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput` 등 타입 alias
 
-위치 검색은 표준 GIS 이름인 `longitude`/`latitude`를 우선한다. TourAPI 원문 이름은 `mapX=longitude`, `mapY=latitude`로만 변환한다. 튜플 좌표는 `(longitude, latitude)` 순서로 해석한다.
+위치 검색은 `pykrtour.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. TourAPI 원문 이름은 `mapX=lon`, `mapY=lat`로만 변환한다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로 해석한다.
 
 ### 국문 contentTypeId
 

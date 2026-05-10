@@ -105,23 +105,24 @@ updated = item.model_copy(update={"title": "새 제목"})
 
 ## 좌표 모델
 
-`Wgs84Coordinate`도 Pydantic 모델이며 경도/위도 범위를 검증합니다.
+좌표 값은 `pykrtour.PlaceCoordinate`를 직접 사용합니다. `pykrtourapi`는 같은 클래스를 `PlaceCoordinate`로 re-export하고, 기존 `Wgs84Coordinate` 이름도 같은 클래스 alias로 남겨 둡니다.
 
 ```python
-from pykrtourapi import Wgs84Coordinate
+from pykrtourapi import PlaceCoordinate, Wgs84Coordinate
 
-coord = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+coord = PlaceCoordinate(lon=126.9769, lat=37.5796)
 
-assert coord.map_x == coord.longitude
-assert coord.map_y == coord.latitude
+assert Wgs84Coordinate is PlaceCoordinate
+assert coord.map_x == coord.lon
+assert coord.map_y == coord.lat
 assert coord.lonlat == (126.9769, 37.5796)
 assert coord.latlon == (37.5796, 126.9769)
 ```
 
-TourAPI 요청으로 보낼 때는 `to_tourapi_params()`를 사용합니다.
+TourAPI 요청 직전에는 client가 `PlaceCoordinate.lon`/`lat`를 `mapX`/`mapY`로 직접 옮깁니다.
 
 ```python
-assert coord.to_tourapi_params() == {"mapX": 126.9769, "mapY": 37.5796}
+assert {"mapX": coord.lon, "mapY": coord.lat} == {"mapX": 126.9769, "mapY": 37.5796}
 ```
 
 ## 모델 목록
@@ -138,7 +139,8 @@ assert coord.to_tourapi_params() == {"mapX": 126.9769, "mapY": 37.5796}
 | `IntroInfo` | content type별 소개정보 |
 | `RepeatInfo` | 반복 상세정보 |
 | `ImageInfo` | 이미지 메타데이터 |
-| `Wgs84Coordinate` | WGS84 경도/위도 값 객체 |
+| `PlaceCoordinate` | `pykrtour`의 WGS84 경도/위도 값 객체 |
+| `Wgs84Coordinate` | `PlaceCoordinate`와 같은 클래스 alias |
 
 ## 직렬화 예시
 
@@ -176,5 +178,5 @@ Pydantic 모델 관련 변경은 아래 항목을 깨지 않아야 합니다.
 
 - typed field와 `raw`가 함께 보존되는지
 - `model_dump()`와 CLI JSON 출력이 정상인지
-- `Wgs84Coordinate` 범위 검증과 `mapX`/`mapY` 변환이 유지되는지
+- `PlaceCoordinate` 범위 검증과 `mapX`/`mapY` 변환이 유지되는지
 - frozen model 특성이 문서와 일치하는지

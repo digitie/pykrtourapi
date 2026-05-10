@@ -6,7 +6,9 @@ import re
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any, cast
 
-from ._convert import enum_value, strip_or_none, to_int_or_none, to_wgs84_coordinate, without_none
+from pykrtour import PlaceCoordinate
+
+from ._convert import enum_value, strip_or_none, to_int_or_none, without_none
 from ._http import SessionLike, TourApiHttp
 from ._pagination import iter_paginated_pages
 from ._provenance import call_context
@@ -508,7 +510,22 @@ def _pythonic_params(params: Mapping[str, Any]) -> dict[str, Any]:
         elif key == "mobile_app":
             converted["MobileApp"] = value
         elif key == "coordinate":
-            converted.update(to_wgs84_coordinate(value).to_tourapi_params())
+            if isinstance(value, PlaceCoordinate):
+                coordinate = value
+            elif isinstance(value, tuple):
+                coordinate = PlaceCoordinate.from_tuple(value)
+            elif isinstance(value, Mapping):
+                mapped_coordinate = PlaceCoordinate.from_mapping(value)
+                if mapped_coordinate is None:
+                    raise ValueError(
+                        "coordinate mapping requires longitude/latitude, lon/lat, or mapX/mapY"
+                    )
+                coordinate = mapped_coordinate
+            else:
+                raise TypeError(
+                    "coordinate must be PlaceCoordinate, (longitude, latitude), or mapping"
+                )
+            converted.update({"mapX": coordinate.lon, "mapY": coordinate.lat})
         else:
             converted[key] = value
     return converted

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
+from pykrtour import PlaceCoordinate
 
 from pykrtourapi import (
     SERVICE_DEFINITIONS,
     RelatedTourItem,
     RelatedTourServiceClient,
     TourApiHubClient,
-    Wgs84Coordinate,
 )
 from pykrtourapi.exceptions import TourApiRequestError
 
@@ -241,18 +241,26 @@ def test_hub_pythonic_param_aliases():
 
 
 def test_hub_coordinate_alias_expands_to_tourapi_params():
-    session = FakeSession([FakeResponse(tour_payload({"contentid": "1"}))])
+    session = FakeSession(
+        [
+            FakeResponse(tour_payload({"contentid": "1"})),
+            FakeResponse(tour_payload({"contentid": "2"})),
+        ]
+    )
     hub = TourApiHubClient("KEY", session=session)
 
     hub.kor.location_based_list(
-        coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+        coordinate=PlaceCoordinate(lon=126.9769, lat=37.5796),
         radius=1000,
     )
+    hub.kor.location_based_list(coordinate={"mapX": 127.0, "mapY": 37.5}, radius=500)
 
     params = session.calls[0]["params"]
     assert params["mapX"] == 126.9769
     assert params["mapY"] == 37.5796
     assert params["radius"] == 1000
+    assert session.calls[1]["params"]["mapX"] == 127.0
+    assert session.calls[1]["params"]["mapY"] == 37.5
 
 
 def test_hub_iter_pages_increments_page_no_for_generic_call():

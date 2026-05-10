@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeAlias, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
+from pykrtour import PlaceCoordinate
 
 RawRecord = Mapping[str, Any]
 T = TypeVar("T")
@@ -18,44 +19,7 @@ class TourApiModel(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
-class Wgs84Coordinate(TourApiModel):
-    """WGS84 longitude/latitude coordinate used by TourAPI.
-
-    TourAPI names longitude `mapX` and latitude `mapY`. This class exposes the
-    standard GIS names while keeping `map_x` and `map_y` aliases for API parity.
-    """
-
-    longitude: float = Field(ge=-180, le=180)
-    latitude: float = Field(ge=-90, le=90)
-
-    @property
-    def map_x(self) -> float:
-        """TourAPI `mapX` value, equivalent to longitude."""
-
-        return self.longitude
-
-    @property
-    def map_y(self) -> float:
-        """TourAPI `mapY` value, equivalent to latitude."""
-
-        return self.latitude
-
-    @property
-    def lonlat(self) -> tuple[float, float]:
-        """Return `(longitude, latitude)`."""
-
-        return (self.longitude, self.latitude)
-
-    @property
-    def latlon(self) -> tuple[float, float]:
-        """Return `(latitude, longitude)` for libraries that use lat/lon order."""
-
-        return (self.latitude, self.longitude)
-
-    def to_tourapi_params(self) -> dict[str, float]:
-        """Return TourAPI parameter names for this coordinate."""
-
-        return {"mapX": self.longitude, "mapY": self.latitude}
+Wgs84Coordinate: TypeAlias = PlaceCoordinate
 
 
 class TourApiCallContext(TourApiModel):
@@ -143,12 +107,12 @@ class TourItem(TourApiModel):
     raw: RawRecord = Field(repr=False)
 
     @property
-    def coordinate(self) -> Wgs84Coordinate | None:
+    def coordinate(self) -> PlaceCoordinate | None:
         """Return standardized WGS84 coordinates when both axes are present."""
 
         if self.map_x is None or self.map_y is None:
             return None
-        return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
+        return PlaceCoordinate(lon=self.map_x, lat=self.map_y)
 
 
 class RelatedTourItem(TourApiModel):
@@ -214,12 +178,12 @@ class TourDetail(TourApiModel):
     context: TourApiCallContext = Field(default_factory=TourApiCallContext)
 
     @property
-    def coordinate(self) -> Wgs84Coordinate | None:
+    def coordinate(self) -> PlaceCoordinate | None:
         """Return standardized WGS84 coordinates when both axes are present."""
 
         if self.map_x is None or self.map_y is None:
             return None
-        return Wgs84Coordinate(longitude=self.map_x, latitude=self.map_y)
+        return PlaceCoordinate(lon=self.map_x, lat=self.map_y)
 
 
 class CodeItem(TourApiModel):

@@ -34,7 +34,7 @@ pykrtourapi/
 - Do not assert unstable real tourism data values in live tests; assert shape and types only.
 - Keep `TourApiHubClient` tests catalog-driven; do not call the real 27 services in default tests.
 - Keep official manual ZIP/DOCX downloads in `.manuals/`, never in git.
-- Keep coordinate tests explicit about WGS84 `longitude`/`latitude` and TourAPI `mapX`/`mapY`.
+- Keep coordinate tests explicit about `PlaceCoordinate` WGS84 `lon`/`lat` and TourAPI `mapX`/`mapY`.
 
 ## Verification commands
 

@@ -4,13 +4,13 @@ from datetime import date
 
 import pytest
 from pydantic import ValidationError
+from pykrtour import PlaceCoordinate
 
 from pykrtourapi import Wgs84Coordinate
 from pykrtourapi._convert import (
     strip_or_none,
     to_float_or_none,
     to_int_or_none,
-    to_wgs84_coordinate,
     to_yyyymmdd,
     yn,
 )
@@ -37,28 +37,30 @@ def test_date_and_yn_conversions():
         yn("yes")
 
 
-def test_wgs84_coordinate_normalization():
-    coordinate = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+def test_place_coordinate_is_public_coordinate_type():
+    coordinate = PlaceCoordinate(lon=126.9769, lat=37.5796)
 
+    assert Wgs84Coordinate is PlaceCoordinate
     assert coordinate.map_x == 126.9769
     assert coordinate.map_y == 37.5796
     assert coordinate.lonlat == (126.9769, 37.5796)
     assert coordinate.latlon == (37.5796, 126.9769)
-    assert coordinate.to_tourapi_params() == {"mapX": 126.9769, "mapY": 37.5796}
-    assert to_wgs84_coordinate((126.9, 37.5)).longitude == 126.9
-    assert to_wgs84_coordinate({"lon": 126.9, "lat": 37.5}).latitude == 37.5
-    assert to_wgs84_coordinate({"mapX": "126.9", "mapY": "37.5"}).lonlat == (126.9, 37.5)
+    assert PlaceCoordinate.from_tuple((126.9, 37.5)).longitude == 126.9
+    assert PlaceCoordinate.from_mapping({"lon": 126.9, "lat": 37.5}).latitude == 37.5
+    assert PlaceCoordinate.from_mapping({"mapX": "126.9", "mapY": "37.5"}).lonlat == (
+        126.9,
+        37.5,
+    )
 
     dumped = coordinate.model_dump()
-    assert dumped["longitude"] == 126.9769
-    assert Wgs84Coordinate.model_json_schema()["properties"]["longitude"]
+    assert dumped["lon"] == 126.9769
+    assert PlaceCoordinate.model_json_schema()["properties"]["lon"]
 
-    with pytest.raises(ValidationError, match="longitude"):
-        Wgs84Coordinate(longitude=181, latitude=37.5)
-    with pytest.raises(ValidationError, match="latitude"):
-        Wgs84Coordinate(longitude=126.9, latitude=91)
-    with pytest.raises(ValueError, match="mapping"):
-        to_wgs84_coordinate({"x": 126.9, "y": 37.5})
+    with pytest.raises(ValidationError, match="lon"):
+        PlaceCoordinate(lon=181, lat=37.5)
+    with pytest.raises(ValidationError, match="lat"):
+        PlaceCoordinate(lon=126.9, lat=91)
+    assert PlaceCoordinate.from_mapping({"not_x": 126.9, "not_y": 37.5}) is None
 
 
 def test_parse_tour_datetime():

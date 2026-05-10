@@ -4,8 +4,9 @@ from datetime import date
 
 import pytest
 from pydantic import ValidationError
+from pykrtour import PlaceCoordinate
 
-from pykrtourapi import Page, Wgs84Coordinate
+from pykrtourapi import Page
 from pykrtourapi.client import KrTourApiClient
 from pykrtourapi.enums import AreaCode, Arrange, ContentType, Language
 from pykrtourapi.exceptions import TourApiAuthError, TourApiNoDataError, TourApiRequestError
@@ -104,7 +105,7 @@ def test_search_keyword_sends_filters_and_parses_item(fake_client_factory):
     assert item.addr2 is None
     assert item.map_x == 126.9769
     assert item.map_y == 37.5796
-    assert item.coordinate == Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+    assert item.coordinate == PlaceCoordinate(lon=126.9769, lat=37.5796)
     assert item.distance_m == 125.4
     assert item.created_time is not None
     assert item.created_time.year == 2024
@@ -159,7 +160,7 @@ def test_location_radius_validation(fake_client_factory):
         client.location_based_list(radius=100)
     with pytest.raises(ValueError, match="cannot be combined"):
         client.location_based_list(
-            coordinate=Wgs84Coordinate(longitude=126.9, latitude=37.5),
+            coordinate=PlaceCoordinate(lon=126.9, lat=37.5),
             map_x=126.9,
             radius=100,
         )
@@ -170,19 +171,22 @@ def test_location_accepts_standard_coordinate_inputs(fake_client_factory):
         FakeResponse(tour_payload([])),
         FakeResponse(tour_payload([])),
         FakeResponse(tour_payload([])),
+        FakeResponse(tour_payload([])),
     )
 
     client.location_based_list(
-        coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796),
+        coordinate=PlaceCoordinate(lon=126.9769, lat=37.5796),
         radius=1000,
     )
     client.location_based_list(coordinate=(127.0, 37.5), radius=1000)
     client.location_based_list(coordinate={"longitude": 127.1, "latitude": 37.6}, radius=1000)
+    client.location_based_list(coordinate={"mapX": 127.2, "mapY": 37.7}, radius=1000)
 
     assert session.calls[0]["params"]["mapX"] == 126.9769
     assert session.calls[0]["params"]["mapY"] == 37.5796
     assert session.calls[1]["params"]["mapX"] == 127.0
     assert session.calls[2]["params"]["mapY"] == 37.6
+    assert session.calls[3]["params"]["mapX"] == 127.2
 
 
 def test_more_client_validation(fake_client_factory):
@@ -242,6 +246,7 @@ def test_detail_common_parses_detail(fake_client_factory):
     assert detail.content_id == "126508"
     assert detail.homepage is not None
     assert detail.overview == "설명"
+    assert detail.coordinate == PlaceCoordinate(lon=126.9769, lat=37.5796)
     assert detail.copyright_division_code == "Type1"
     assert detail.context.service_name == "KorService2"
     assert detail.context.endpoint == "detailCommon2"

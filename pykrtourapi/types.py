@@ -6,8 +6,9 @@ from collections.abc import Mapping
 from datetime import date, datetime
 from typing import TypeAlias
 
+from pykrtour import PlaceCoordinate
+
 from .enums import AreaCode, Arrange, ContentType, Language, MobileOS
-from .models import Wgs84Coordinate
 
 ServiceKey: TypeAlias = str
 AreaCodeValue: TypeAlias = str
@@ -18,7 +19,7 @@ ClassificationCodeValue: TypeAlias = str
 ContentId: TypeAlias = str
 DateInput: TypeAlias = str | date | datetime
 YnInput: TypeAlias = bool | str | None
-CoordinateInput: TypeAlias = Wgs84Coordinate | tuple[float, float] | Mapping[str, object]
+CoordinateInput: TypeAlias = PlaceCoordinate | tuple[float, float] | Mapping[str, object]
 AreaCodeInput: TypeAlias = AreaCode | str | None
 ContentTypeInput: TypeAlias = ContentType | str | None
 ArrangeInput: TypeAlias = Arrange | str | None

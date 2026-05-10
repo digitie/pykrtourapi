@@ -7,12 +7,13 @@ from collections.abc import Callable, Iterator, Mapping
 from datetime import date, datetime
 from typing import Any, TypeVar
 
+from pykrtour import PlaceCoordinate
+
 from ._convert import (
     enum_value,
     strip_or_none,
     to_float_or_none,
     to_int_or_none,
-    to_wgs84_coordinate,
     to_yyyymmdd,
     yn,
 )
@@ -31,7 +32,6 @@ from .models import (
     RepeatInfo,
     TourDetail,
     TourItem,
-    Wgs84Coordinate,
 )
 
 DEFAULT_BASE_URL = "http://apis.data.go.kr/B551011"
@@ -188,7 +188,7 @@ class KrTourApiClient:
         radius: int,
         map_x: float | None = None,
         map_y: float | None = None,
-        coordinate: Wgs84Coordinate | tuple[float, float] | Mapping[str, Any] | None = None,
+        coordinate: PlaceCoordinate | tuple[float, float] | Mapping[str, Any] | None = None,
         content_type_id: ContentType | str | None = None,
         l_dong_regn_cd: str | None = None,
         l_dong_signgu_cd: str | None = None,
@@ -217,7 +217,9 @@ class KrTourApiClient:
             page_no=page_no,
             num_of_rows=num_of_rows,
         )
-        params.update(coordinate_value.to_tourapi_params() | {"radius": int(radius)})
+        params.update(
+            {"mapX": coordinate_value.lon, "mapY": coordinate_value.lat, "radius": int(radius)}
+        )
         return self._get_page("locationBasedList2", params, _tour_item)
 
     def search_keyword(
@@ -648,15 +650,26 @@ def _resolve_coordinate(
     *,
     map_x: float | None,
     map_y: float | None,
-    coordinate: Wgs84Coordinate | tuple[float, float] | Mapping[str, Any] | None,
-) -> Wgs84Coordinate:
+    coordinate: PlaceCoordinate | tuple[float, float] | Mapping[str, Any] | None,
+) -> PlaceCoordinate:
     if coordinate is not None:
         if map_x is not None or map_y is not None:
             raise ValueError("coordinate cannot be combined with map_x or map_y")
-        return to_wgs84_coordinate(coordinate)
+        if isinstance(coordinate, PlaceCoordinate):
+            return coordinate
+        if isinstance(coordinate, tuple):
+            return PlaceCoordinate.from_tuple(coordinate)
+        if isinstance(coordinate, Mapping):
+            coordinate_value = PlaceCoordinate.from_mapping(coordinate)
+            if coordinate_value is None:
+                raise ValueError(
+                    "coordinate mapping requires longitude/latitude, lon/lat, or mapX/mapY"
+                )
+            return coordinate_value
+        raise TypeError("coordinate must be PlaceCoordinate, (longitude, latitude), or mapping")
     if map_x is None or map_y is None:
         raise ValueError("location_based_list requires coordinate or both map_x and map_y")
-    return Wgs84Coordinate(longitude=map_x, latitude=map_y)
+    return PlaceCoordinate(lon=map_x, lat=map_y)
 
 
 def _extract_items(

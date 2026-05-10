@@ -20,6 +20,6 @@
 - Added offline tests for Hub service routing, operation aliases, environment fallback, and Pythonic parameter aliases.
 - Added live server tests loaded from local `.env.local`, with Korean service success and unsubscribed foreign service auth-error coverage.
 - Added a browser-compatible User-Agent and `resultCode=0000` success handling based on real TourAPI responses.
-- Added public `Language` and `AreaCode` enums, integration-facing type aliases, and `Wgs84Coordinate`.
+- Added public `Language` and `AreaCode` enums, integration-facing type aliases, and `PlaceCoordinate`/`Wgs84Coordinate` coordinate exports.
 - Added coordinate normalization for `location_based_list()` while preserving `map_x`/`map_y` compatibility.
 - Migrated public response models to frozen Pydantic v2 models with `model_dump()` and JSON schema support.

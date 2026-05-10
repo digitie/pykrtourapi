@@ -25,6 +25,7 @@ classifiers = [
 ]
 dependencies = [
   "pydantic>=2.7",
+  "pykrtour>=0.1.5",
   "requests>=2.31",
   "tzdata>=2024.1; platform_system == 'Windows'",
 ]

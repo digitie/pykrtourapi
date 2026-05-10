@@ -13,7 +13,7 @@
 pip install -e ".[dev]"
 ```
 
-라이브러리 런타임 의존성은 `requests`, `pydantic>=2.7`, Windows용 `tzdata`입니다. 외부 앱에서 타입 검사를 적극적으로 쓰려면 `pykrtourapi/py.typed`가 포함되어 있으므로 `mypy`나 pyright가 공개 타입을 읽을 수 있습니다.
+라이브러리 런타임 의존성은 `requests`, `pydantic>=2.7`, `pykrtour>=0.1.5`, Windows용 `tzdata`입니다. 외부 앱에서 타입 검사를 적극적으로 쓰려면 `pykrtourapi/py.typed`가 포함되어 있으므로 `mypy`나 pyright가 공개 타입을 읽을 수 있습니다.
 
 ## 인증키
 
@@ -137,12 +137,12 @@ classes = client.classification_system_codes(lcls_systm1="AC", list_yn=True)
 
 ## 좌표 규칙
 
-TourAPI 원문 이름은 `mapX=경도`, `mapY=위도`입니다. 외부 프로그램에서는 지도/GIS 표준에 맞춰 `Wgs84Coordinate(longitude=..., latitude=...)`를 우선 사용하세요.
+TourAPI 원문 이름은 `mapX=경도`, `mapY=위도`입니다. 외부 프로그램에서는 `pykrtour.PlaceCoordinate`를 직접 쓰세요. `pykrtourapi`도 같은 클래스를 re-export하며, 기존 `Wgs84Coordinate` 이름은 같은 클래스 alias입니다.
 
 ```python
-from pykrtourapi import Wgs84Coordinate
+from pykrtourapi import PlaceCoordinate
 
-coord = Wgs84Coordinate(longitude=126.9769, latitude=37.5796)
+coord = PlaceCoordinate(lon=126.9769, lat=37.5796)
 
 page = client.location_based_list(
     coordinate=coord,
@@ -154,13 +154,14 @@ page = client.location_based_list(
 허용되는 입력:
 
 ```python
-client.location_based_list(coordinate=Wgs84Coordinate(longitude=126.9769, latitude=37.5796), radius=1000)
+client.location_based_list(coordinate=PlaceCoordinate(lon=126.9769, lat=37.5796), radius=1000)
 client.location_based_list(coordinate=(126.9769, 37.5796), radius=1000)
 client.location_based_list(coordinate={"longitude": 126.9769, "latitude": 37.5796}, radius=1000)
+client.location_based_list(coordinate={"mapX": 126.9769, "mapY": 37.5796}, radius=1000)
 client.location_based_list(map_x=126.9769, map_y=37.5796, radius=1000)
 ```
 
-튜플은 항상 `(longitude, latitude)` 순서입니다. `folium`, 일부 geocoder, 웹 지도 SDK처럼 `(latitude, longitude)` 순서를 쓰는 도구와 섞을 때는 `coord.latlon`과 `coord.lonlat`을 명시적으로 선택하세요.
+튜플은 항상 `(longitude, latitude)` 또는 `(lon, lat)` 순서입니다. `folium`, 일부 geocoder, 웹 지도 SDK처럼 `(latitude, longitude)` 순서를 쓰는 도구와 섞을 때는 `coord.latlon`과 `coord.lonlat`을 명시적으로 선택하세요.
 
 ## Pydantic 응답 모델
 

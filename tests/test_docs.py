@@ -28,7 +28,7 @@ def test_user_docs_cover_public_model_usage() -> None:
     for term in (
         "KrTourApiClient",
         "TourApiHubClient",
-        "Wgs84Coordinate",
+        "PlaceCoordinate",
         "model_dump",
         "KTO_SERVICE_KEY",
     ):

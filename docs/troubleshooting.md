@@ -63,9 +63,9 @@ TourAPI는 `_type=json` 요청에도 인증키/권한 오류를 XML로 돌려줄
 
 해결:
 
-- public API에서는 `Wgs84Coordinate(longitude=..., latitude=...)`를 우선 사용한다.
+- public API에서는 `PlaceCoordinate(lon=..., lat=...)`를 우선 사용한다. `Wgs84Coordinate`는 같은 클래스 alias다.
 - tuple을 쓸 때는 `(longitude, latitude)` 순서로만 넘긴다.
-- TourAPI 요청 직전 변환은 `coord.to_tourapi_params()`가 `{"mapX": longitude, "mapY": latitude}`를 만든다는 기준으로 확인한다.
+- TourAPI 요청 직전 변환은 `coord.lon`이 `mapX`, `coord.lat`이 `mapY`로 들어간다는 기준으로 확인한다.
 
 ## `AttributeError` 또는 unknown operation
 
