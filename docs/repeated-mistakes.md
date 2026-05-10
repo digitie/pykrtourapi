@@ -182,6 +182,18 @@
 
 **가드레일:** `test_client_iter_pages_increments_page_no`, `test_client_iter_pages_no_data_is_empty_iterator`, `test_hub_iter_pages_increments_page_no_for_generic_call`.
 
+## 검증된 외부 구현을 얇은 wrapper로 감추기
+
+**실수:** 다른 라이브러리나 소비자 앱에서 이미 검증된 구현이 있는데, 최소 수정 원칙에만 매여 `pykrtourapi`에는 얇은 wrapper나 호출 우회층만 추가한다.
+
+**증상:** 실제 로직은 계속 외부 코드에 남아 같은 버그와 정책을 여러 곳에서 고쳐야 하고, `pykrtourapi` 사용자는 이 패키지만으로 문제를 해결하지 못한다.
+
+**원인:** 변경량을 줄이는 것을 동작 소유권을 가져오는 것보다 우선해서, 이 패키지가 책임져야 할 구현을 중간 계층 뒤에 남겨 둔다.
+
+**규칙:** 라이선스와 출처가 확인되고 이 패키지의 책임 범위에 맞는 구현이면 불필요한 wrapper를 만들지 말고 `pykrtourapi` 코드와 테스트에 직접 반영한다. 단순 최소 수정보다 검증된 동작을 패키지 안에서 소유하는 쪽을 우선하되, public API 표면은 기존 스타일과 타입 규칙에 맞춘다.
+
+**가드레일:** 외부 구현을 가져올 때는 원 구현이 해결하던 edge case를 offline test fixture로 먼저 옮긴다. 출처나 근거가 필요한 경우 문서 또는 짧은 코드 주석에 남기고, 얇은 위임 함수만 추가된 변경은 실제 로직과 테스트가 `pykrtourapi` 안에 있는지 리뷰한다.
+
 ## 예외 메시지만 보고 사용자 오류를 분기하기
 
 **실수:** 외부 앱이 `str(exc)`를 파싱하거나 자체 exception mapping wrapper를 만들어 인증, 쿼터, 요청 오류, 서버 오류, 파싱 오류를 다시 분류한다.
