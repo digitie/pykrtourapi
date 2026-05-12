@@ -1,6 +1,6 @@
 """Python client for Korea Tourism Organization TourAPI."""
 
-from pykrtour import PlaceCoordinate
+from kraddr.base import PlaceCoordinate
 
 from .client import KrTourApiClient, TourApiClient
 from .display import CopyrightDisplayInfo, clean_tourapi_html, copyright_display_info

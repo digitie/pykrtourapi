@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pykrtourapi"
+name = "python-visitkorea-api"
 version = "0.1.0"
 description = "Unofficial Python client for Korea Tourism Organization TourAPI."
 readme = "README.md"
@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
   "pydantic>=2.7",
-  "pykrtour>=0.1.5",
+  "python-kraddr-base @ file:../python-kraddr-base",
   "requests>=2.31",
   "tzdata>=2024.1; platform_system == 'Windows'",
 ]
@@ -41,13 +41,14 @@ dev = [
 ]
 
 [project.scripts]
-pykrtourapi = "pykrtourapi.cli:main"
+visitkorea = "visitkorea.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["pykrtourapi*"]
+where = ["src"]
+include = ["visitkorea*"]
 
 [tool.setuptools.package-data]
-pykrtourapi = ["py.typed"]
+visitkorea = ["py.typed"]
 
 [tool.ruff]
 line-length = 100
@@ -63,6 +64,7 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "-ra"
 markers = [
   "live: tests that call the real TourAPI service and require KTO_SERVICE_KEY",

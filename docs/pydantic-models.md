@@ -1,6 +1,6 @@
 # Pydantic 모델 가이드
 
-`pykrtourapi`의 공개 응답 모델은 Pydantic v2 `BaseModel`을 상속한 `TourApiModel` 기반입니다. 목표는 기존 dataclass처럼 가볍게 속성 접근을 유지하면서도 외부 프로그램이 검증, 직렬화, JSON schema를 바로 활용할 수 있게 하는 것입니다.
+`visitkorea`의 공개 응답 모델은 Pydantic v2 `BaseModel`을 상속한 `TourApiModel` 기반입니다. 목표는 기존 dataclass처럼 가볍게 속성 접근을 유지하면서도 외부 프로그램이 검증, 직렬화, JSON schema를 바로 활용할 수 있게 하는 것입니다.
 
 ## 모델 원칙
 
@@ -14,7 +14,7 @@
 ## 기본 사용
 
 ```python
-from pykrtourapi import ContentType, KrTourApiClient
+from visitkorea import ContentType, KrTourApiClient
 
 client = KrTourApiClient.from_env()
 page = client.search_keyword("경복궁", content_type_id=ContentType.TOURIST_ATTRACTION)
@@ -60,7 +60,7 @@ print(page.context.collected_at)
 외부 프로그램에서 응답 계약을 문서화하거나 검증할 때 JSON schema를 사용할 수 있습니다.
 
 ```python
-from pykrtourapi import TourItem
+from visitkorea import TourItem
 
 schema = TourItem.model_json_schema()
 ```
@@ -68,7 +68,7 @@ schema = TourItem.model_json_schema()
 `Page[TourItem]`처럼 generic page의 schema가 필요하면 Pydantic generic model을 그대로 사용합니다.
 
 ```python
-from pykrtourapi import Page, TourItem
+from visitkorea import Page, TourItem
 
 schema = Page[TourItem].model_json_schema()
 ```
@@ -105,10 +105,10 @@ updated = item.model_copy(update={"title": "새 제목"})
 
 ## 좌표 모델
 
-좌표 값은 `pykrtour.PlaceCoordinate`를 직접 사용합니다. `pykrtourapi`는 같은 클래스를 `PlaceCoordinate`로 re-export하고, 기존 `Wgs84Coordinate` 이름도 같은 클래스 alias로 남겨 둡니다.
+좌표 값은 `kraddr.base.PlaceCoordinate`를 직접 사용합니다. `visitkorea`는 같은 클래스를 `PlaceCoordinate`로 re-export하고, 기존 `Wgs84Coordinate` 이름도 같은 클래스 alias로 남겨 둡니다.
 
 ```python
-from pykrtourapi import PlaceCoordinate, Wgs84Coordinate
+from visitkorea import PlaceCoordinate, Wgs84Coordinate
 
 coord = PlaceCoordinate(lon=126.9769, lat=37.5796)
 
@@ -139,7 +139,7 @@ assert {"mapX": coord.lon, "mapY": coord.lat} == {"mapX": 126.9769, "mapY": 37.5
 | `IntroInfo` | content type별 소개정보 |
 | `RepeatInfo` | 반복 상세정보 |
 | `ImageInfo` | 이미지 메타데이터 |
-| `PlaceCoordinate` | `pykrtour`의 WGS84 경도/위도 값 객체 |
+| `PlaceCoordinate` | `kraddr.base`의 WGS84 경도/위도 값 객체 |
 | `Wgs84Coordinate` | `PlaceCoordinate`와 같은 클래스 alias |
 
 ## 직렬화 예시

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pykrtourapi import clean_tourapi_html, copyright_display_info
+from visitkorea import clean_tourapi_html, copyright_display_info
 
 from .conftest import FakeResponse, tour_payload
 

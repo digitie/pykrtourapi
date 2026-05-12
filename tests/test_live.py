@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from pykrtourapi import KrTourApiClient, TourApiHubClient
-from pykrtourapi.exceptions import TourApiAuthError
+from visitkorea import KrTourApiClient, TourApiHubClient
+from visitkorea.exceptions import TourApiAuthError
 
 pytestmark = pytest.mark.live
 
@@ -21,7 +21,7 @@ def test_live_korean_area_codes_returns_tourapi_shape():
     key = _service_key()
     client = KrTourApiClient(
         key,
-        mobile_app="pykrtourapi-live-test",
+        mobile_app="visitkorea-live-test",
         timeout=20,
     )
 
@@ -33,7 +33,7 @@ def test_live_korean_area_codes_returns_tourapi_shape():
     assert isinstance(page.raw, dict)
     assert page.context.service_name == "KorService2"
     assert page.context.endpoint == "areaCode2"
-    assert page.context.request_params["MobileApp"] == "pykrtourapi-live-test"
+    assert page.context.request_params["MobileApp"] == "visitkorea-live-test"
     assert page.context.request_params["numOfRows"] == 5
     assert page.context.collected_at is not None
     assert "serviceKey" not in page.context.request_params
@@ -46,7 +46,7 @@ def test_live_unsubscribed_foreign_service_maps_to_auth_error():
     key = _service_key()
     hub = TourApiHubClient(
         key,
-        mobile_app="pykrtourapi-live-test",
+        mobile_app="visitkorea-live-test",
         timeout=20,
     )
 

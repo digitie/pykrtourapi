@@ -11,7 +11,7 @@
 
 공공데이터포털 문서에는 국문 관광정보서비스가 JSON+XML REST API이며, 약 26만 건의 국내 관광정보를 15종 범주로 제공한다고 안내되어 있다. 기본 요청 링크는 `http://apis.data.go.kr/B551011/KorService2/{operation}` 형식이다.
 
-`api.visitkorea.or.kr/#/useUtilExercises`의 전체 활용신청 목록은 27개 서비스 ZIP 메뉴얼을 기준으로 `pykrtourapi.services.SERVICE_DEFINITIONS`에 반영한다. `KrTourApiClient`는 자주 쓰는 `KorService2`용 typed wrapper이고, 나머지 서비스와 모든 operation은 `TourApiHubClient`가 카탈로그 기반 generic wrapper로 제공한다.
+`api.visitkorea.or.kr/#/useUtilExercises`의 전체 활용신청 목록은 27개 서비스 ZIP 메뉴얼을 기준으로 `visitkorea.services.SERVICE_DEFINITIONS`에 반영한다. `KrTourApiClient`는 자주 쓰는 `KorService2`용 typed wrapper이고, 나머지 서비스와 모든 operation은 `TourApiHubClient`가 카탈로그 기반 generic wrapper로 제공한다.
 
 ## 공통 요청
 
@@ -19,7 +19,7 @@
 |---|---|
 | `serviceKey` | 공공데이터포털 인증키. `params=`를 쓰므로 Decoding 키 권장 |
 | `MobileOS` | `IOS`, `AND`, `WEB`, `WIN`, `ETC`; 기본 `ETC` |
-| `MobileApp` | 서비스/앱 이름; 기본 `pykrtourapi` |
+| `MobileApp` | 서비스/앱 이름; 기본 `visitkorea` |
 | `_type` | 항상 `json` |
 | `pageNo` | 1 이상 |
 | `numOfRows` | 1~1000 |
@@ -52,7 +52,7 @@
 `TourApiHubClient`는 메뉴얼 목록의 서비스명과 operation명을 그대로 사용한다. Python에서는 camelCase operation을 snake_case alias로도 호출할 수 있다.
 
 ```python
-from pykrtourapi import TourApiHubClient
+from visitkorea import TourApiHubClient
 
 hub = TourApiHubClient.from_env()
 
@@ -78,11 +78,11 @@ typed client와 Hub는 모두 pagination iterator를 제공한다. `Page.has_nex
 - `AreaCode`: 국문 서비스 지역 코드
 - `ContentType`: 국문 서비스 content type 코드
 - `Arrange`, `MobileOS`
-- `PlaceCoordinate`: `pykrtour`의 WGS84 경도/위도 객체
+- `PlaceCoordinate`: `kraddr.base`의 WGS84 경도/위도 객체
 - `Wgs84Coordinate`: 기존 호환용 `PlaceCoordinate` alias
 - `ServiceKey`, `ContentId`, `DateInput`, `CoordinateInput`, `AreaCodeInput` 등 타입 alias
 
-위치 검색은 `pykrtour.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. TourAPI 원문 이름은 `mapX=lon`, `mapY=lat`로만 변환한다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로 해석한다.
+위치 검색은 `kraddr.base.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. TourAPI 원문 이름은 `mapX=lon`, `mapY=lat`로만 변환한다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로 해석한다.
 
 ### 국문 contentTypeId
 

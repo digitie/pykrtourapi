@@ -1,10 +1,10 @@
-"""Exception hierarchy for pykrtourapi."""
+"""Exception hierarchy for visitkorea."""
 
 from __future__ import annotations
 
 
 class TourApiError(Exception):
-    """Base exception for all pykrtourapi errors."""
+    """Base exception for all visitkorea errors."""
 
     def __init__(
         self,

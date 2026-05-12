@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from kraddr.base import PlaceCoordinate
 from pydantic import ValidationError
-from pykrtour import PlaceCoordinate
 
-from pykrtourapi import Page
-from pykrtourapi.client import KrTourApiClient
-from pykrtourapi.enums import AreaCode, Arrange, ContentType, Language
-from pykrtourapi.exceptions import TourApiAuthError, TourApiNoDataError, TourApiRequestError
+from visitkorea import Page
+from visitkorea.client import KrTourApiClient
+from visitkorea.enums import AreaCode, Arrange, ContentType, Language
+from visitkorea.exceptions import TourApiAuthError, TourApiNoDataError, TourApiRequestError
 
 from .conftest import FakeResponse, FakeSession, tour_payload
 
@@ -91,7 +91,7 @@ def test_search_keyword_sends_filters_and_parses_item(fake_client_factory):
     assert page.context.collected_at is not None
     assert page.context.collected_at.tzinfo is not None
     assert page.context.request_params["MobileOS"] == "ETC"
-    assert page.context.request_params["MobileApp"] == "pykrtourapi"
+    assert page.context.request_params["MobileApp"] == "visitkorea"
     assert page.context.request_params["_type"] == "json"
     assert page.context.request_params["keyword"] == "궁"
     assert page.context.request_params["contentTypeId"] == "12"

@@ -1,4 +1,4 @@
-"""Command-line interface for pykrtourapi."""
+"""Command-line interface for visitkorea."""
 
 from __future__ import annotations
 
@@ -15,12 +15,12 @@ from .client import KrTourApiClient
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="pykrtourapi")
+    parser = argparse.ArgumentParser(prog="visitkorea")
     parser.add_argument(
         "--service-key",
         help="TourAPI decoded service key. Defaults to KTO_SERVICE_KEY.",
     )
-    parser.add_argument("--mobile-app", default="pykrtourapi")
+    parser.add_argument("--mobile-app", default="visitkorea")
     parser.add_argument("--language", default="ko")
     subparsers = parser.add_subparsers(dest="command", required=True)
 

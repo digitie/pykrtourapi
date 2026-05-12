@@ -1,11 +1,11 @@
 ---
-name: krtourapi-python-builder
-description: Use this skill when building, extending, debugging, or documenting pykrtourapi, a Python client for Korea Tourism Organization TourAPI on data.go.kr.
+name: visitkorea-python-builder
+description: Use this skill when building, extending, debugging, or documenting visitkorea, a Python client for Korea Tourism Organization TourAPI on data.go.kr.
 ---
 
-# KRTourAPI Python Library Builder
+# VisitKorea Python Library Builder
 
-You are helping build and maintain `pykrtourapi`, a Python client for Korea Tourism Organization TourAPI.
+You are helping build and maintain `visitkorea`, a Python client for Korea Tourism Organization TourAPI.
 
 Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public behavior.
 
@@ -25,7 +25,7 @@ Read `README.md`, `krtourapi-api.md`, and `AGENTS.md` before changing public beh
 12. Downloaded official manual ZIP/DOCX files stay in `.manuals/` and are never committed.
 13. Secrets stay in local `.env.local` or shell environment only; never commit API keys.
 14. Treat `resultCode=0000` as success, and keep a browser-compatible User-Agent for live TourAPI calls.
-15. Public coordinate APIs use `pykrtour.PlaceCoordinate(lon, lat)`; convert to TourAPI `mapX`/`mapY` only at the request boundary.
+15. Public coordinate APIs use `kraddr.base.PlaceCoordinate(lon, lat)`; convert to TourAPI `mapX`/`mapY` only at the request boundary.
 16. Keep enum/type exports stable for downstream applications and type checkers.
 17. Public response models inherit from `TourApiModel`/Pydantic v2 `BaseModel` and remain frozen.
 18. Keep unstable TourAPI fields in `raw`; do not over-model content-type-specific fields.

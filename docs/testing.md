@@ -10,11 +10,11 @@
 ## 실행
 
 ```bash
-python -m compileall pykrtourapi tests
+python -m compileall src/visitkorea tests
 python -m pytest
-python -m pytest --cov=pykrtourapi --cov-fail-under=90
+python -m pytest --cov=visitkorea --cov-fail-under=90
 ruff check .
-mypy pykrtourapi
+mypy src/visitkorea
 ```
 
 ## 반드시 유지할 테스트 범위

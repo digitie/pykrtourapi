@@ -1,6 +1,6 @@
 # Repeated Mistakes To Avoid
 
-이 문서는 `pykrtourapi`를 만들면서 반복하기 쉬운 실수를 고정해 두는 로그입니다. 같은 문제가 다시 나오면 반드시 테스트와 함께 갱신합니다.
+이 문서는 `visitkorea`를 만들면서 반복하기 쉬운 실수를 고정해 두는 로그입니다. 같은 문제가 다시 나오면 반드시 테스트와 함께 갱신합니다.
 
 ## 서비스키 인코딩
 
@@ -128,7 +128,7 @@
 
 **증상:** 위치 기반 검색 결과가 엉뚱한 지역으로 나오거나 반경 검색이 비어 있다.
 
-**규칙:** public API에서는 `pykrtour.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. `Wgs84Coordinate`는 같은 클래스 alias로만 둔다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=lon`, `mapY=lat`로 변환한다.
+**규칙:** public API에서는 `kraddr.base.PlaceCoordinate(lon=..., lat=...)`를 직접 사용한다. `Wgs84Coordinate`는 같은 클래스 alias로만 둔다. 튜플 좌표는 `(longitude, latitude)` 또는 `(lon, lat)` 순서로만 해석하고, TourAPI 요청 직전에만 `mapX=lon`, `mapY=lat`로 변환한다.
 
 **가드레일:** `test_place_coordinate_is_public_coordinate_type`, `test_location_accepts_standard_coordinate_inputs`.
 
@@ -141,6 +141,18 @@
 **규칙:** README의 로컬 markdown 링크는 실제 파일을 가리켜야 한다. 새 문서를 추가하면 README 문서 목록, 관련 가이드, 테스트 문서의 guardrail도 함께 갱신한다.
 
 **가드레일:** `test_readme_local_markdown_links_exist`.
+
+## 배포 이름과 import 이름을 같은 값으로 가정하기
+
+**실수:** 저장소/배포 이름과 Python import 이름을 모두 같은 문자열로 맞추려고 한다.
+
+**증상:** `python-visitkorea-api`처럼 하이픈이 들어간 배포 이름을 import 경로로 착각하거나, `src` layout에서 루트 패키지를 잘못 발견해 설치 후 `import visitkorea`가 실패한다.
+
+**원인:** PyPI/저장소 이름과 Python 패키지 디렉터리 이름의 역할을 분리하지 않고, 프로젝트 구조 변경 뒤 패키징 설정과 테스트 import 경로를 함께 갱신하지 않는다.
+
+**규칙:** 배포/저장소 이름은 `python-visitkorea-api`로 두고, import 가능한 패키지는 `src/visitkorea` 하나로 둔다. `pyproject.toml`의 setuptools package discovery는 `where = ["src"]`, `include = ["visitkorea*"]`를 유지한다.
+
+**가드레일:** `test_distribution_uses_visitkorea_import_name`, `test_source_layout_is_configured_for_visitkorea_package`.
 
 ## Pydantic 모델을 mutable dataclass처럼 문서화하기
 
@@ -184,15 +196,15 @@
 
 ## 검증된 외부 구현을 얇은 wrapper로 감추기
 
-**실수:** 다른 라이브러리나 소비자 앱에서 이미 검증된 구현이 있는데, 최소 수정 원칙에만 매여 `pykrtourapi`에는 얇은 wrapper나 호출 우회층만 추가한다.
+**실수:** 다른 라이브러리나 소비자 앱에서 이미 검증된 구현이 있는데, 최소 수정 원칙에만 매여 `visitkorea`에는 얇은 wrapper나 호출 우회층만 추가한다.
 
-**증상:** 실제 로직은 계속 외부 코드에 남아 같은 버그와 정책을 여러 곳에서 고쳐야 하고, `pykrtourapi` 사용자는 이 패키지만으로 문제를 해결하지 못한다.
+**증상:** 실제 로직은 계속 외부 코드에 남아 같은 버그와 정책을 여러 곳에서 고쳐야 하고, `visitkorea` 사용자는 이 패키지만으로 문제를 해결하지 못한다.
 
 **원인:** 변경량을 줄이는 것을 동작 소유권을 가져오는 것보다 우선해서, 이 패키지가 책임져야 할 구현을 중간 계층 뒤에 남겨 둔다.
 
-**규칙:** 공통 POI/좌표 값 객체처럼 `pykrtour`가 소유한 개념은 `pykrtourapi`에 mirror class나 변환 wrapper를 만들지 말고 `pykrtour` 타입을 파라미터와 반환값에 직접 사용한다. 필요한 alias나 provider key 지원은 `pykrtour`에 보강하고, TourAPI 요청명으로 바꾸는 마지막 단계만 `pykrtourapi`에 둔다.
+**규칙:** 공통 POI/좌표 값 객체처럼 `kraddr.base`가 소유한 개념은 `visitkorea`에 mirror class나 변환 wrapper를 만들지 말고 `kraddr.base` 타입을 파라미터와 반환값에 직접 사용한다. 필요한 alias나 provider key 지원은 `python-kraddr-base`에 보강하고, TourAPI 요청명으로 바꾸는 마지막 단계만 `visitkorea`에 둔다.
 
-**가드레일:** 공통 구현을 가져올 때는 원 구현이 해결하던 edge case를 offline test fixture로 먼저 옮긴다. 출처나 근거가 필요한 경우 문서 또는 짧은 코드 주석에 남기고, 별도 wrapper만 추가된 변경은 실제 public 타입이 `pykrtour` 타입인지 리뷰한다.
+**가드레일:** 공통 구현을 가져올 때는 원 구현이 해결하던 edge case를 offline test fixture로 먼저 옮긴다. 출처나 근거가 필요한 경우 문서 또는 짧은 코드 주석에 남기고, 별도 wrapper만 추가된 변경은 실제 public 타입이 `kraddr.base` 타입인지 리뷰한다.
 
 ## 예외 메시지만 보고 사용자 오류를 분기하기
 
@@ -228,11 +240,11 @@
 
 ## 문서에 로컬 절대 경로를 남기기
 
-**실수:** README, 개발 문서, 변경 요약에 `F:\dev\pykrtourapi\...` 같은 개인 환경의 절대 경로를 남긴다.
+**실수:** README, 개발 문서, 변경 요약에 `F:\dev\visitkorea\...` 같은 개인 환경의 절대 경로를 남긴다.
 
 **증상:** 다른 개발자나 CI 환경에서 그대로 따라갈 수 없는 위치 정보가 생기고, 문서가 특정 작업 PC에 묶여 보인다.
 
-**규칙:** 저장소 안의 파일 위치는 프로젝트 루트 기준 상대 경로로 쓴다. 예: `docs/repeated-mistakes.md`, `pykrtourapi/client.py`.
+**규칙:** 저장소 안의 파일 위치는 프로젝트 루트 기준 상대 경로로 쓴다. 예: `docs/repeated-mistakes.md`, `src/visitkorea/client.py`.
 
 **가드레일:** 문서와 커밋/PR 설명을 마무리하기 전에 로컬 드라이브 경로, 사용자 홈 경로, OS별 임시 절대 경로가 남아 있지 않은지 확인한다.
 

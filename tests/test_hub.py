@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import pytest
+from kraddr.base import PlaceCoordinate
 from pydantic import ValidationError
-from pykrtour import PlaceCoordinate
 
-from pykrtourapi import (
+from visitkorea import (
     SERVICE_DEFINITIONS,
     RelatedTourItem,
     RelatedTourServiceClient,
     TourApiHubClient,
 )
-from pykrtourapi.exceptions import TourApiRequestError
+from visitkorea.exceptions import TourApiRequestError
 
 from .conftest import FakeResponse, FakeSession, tour_payload
 
@@ -94,7 +94,7 @@ def test_all_catalog_operations_are_routable_without_live_api_calls():
             assert call["url"].endswith(f"/{service.service_name}/{operation}")
             assert call["params"]["serviceKey"] == "KEY"
             assert call["params"]["MobileOS"] == "ETC"
-            assert call["params"]["MobileApp"] == "pykrtourapi"
+            assert call["params"]["MobileApp"] == "visitkorea"
             assert call["params"]["_type"] == "json"
 
     assert len(session.calls) == total_operations
@@ -126,7 +126,7 @@ def test_hub_call_by_service_key_and_operation_alias():
     assert page.context.endpoint == "basedList"
     assert page.context.collected_at is not None
     assert page.context.request_params["MobileOS"] == "ETC"
-    assert page.context.request_params["MobileApp"] == "pykrtourapi"
+    assert page.context.request_params["MobileApp"] == "visitkorea"
     assert page.context.request_params["_type"] == "json"
     assert page.context.request_params["facltNm"] == "숲"
     assert "serviceKey" not in page.context.request_params

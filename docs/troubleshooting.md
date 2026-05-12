@@ -33,7 +33,7 @@
 
 ## JSON 파싱 실패
 
-TourAPI는 `_type=json` 요청에도 인증키/권한 오류를 XML로 돌려줄 수 있다. `pykrtourapi`는 알려진 XML 오류 envelope를 파싱해 `TourApiAuthError` 등으로 바꾼다. 그래도 `TourApiParseError`가 난다면 응답 본문 일부를 확인하고 새 envelope 형태를 테스트로 추가한다.
+TourAPI는 `_type=json` 요청에도 인증키/권한 오류를 XML로 돌려줄 수 있다. `visitkorea`는 알려진 XML 오류 envelope를 파싱해 `TourApiAuthError` 등으로 바꾼다. 그래도 `TourApiParseError`가 난다면 응답 본문 일부를 확인하고 새 envelope 형태를 테스트로 추가한다.
 
 ## HTTP 403 Forbidden
 
@@ -46,7 +46,7 @@ TourAPI는 `_type=json` 요청에도 인증키/권한 오류를 XML로 돌려줄
 해결:
 
 - 신청된 서비스 URL인지 먼저 확인한다.
-- `pykrtourapi` 기본 세션은 브라우저 호환 User-Agent를 설정한다. 커스텀 session을 넘길 때도 User-Agent를 지정한다.
+- `visitkorea` 기본 세션은 브라우저 호환 User-Agent를 설정한다. 커스텀 session을 넘길 때도 User-Agent를 지정한다.
 - live test에서는 미신청 서비스의 403을 `TourApiAuthError` 매핑 검증에 사용한다.
 
 ## `radius must be between 1 and 20000 meters`

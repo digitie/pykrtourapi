@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from pykrtourapi._http import DEFAULT_USER_AGENT, TourApiHttp, build_session
-from pykrtourapi.enums import MobileOS
-from pykrtourapi.exceptions import (
+from visitkorea._http import DEFAULT_USER_AGENT, TourApiHttp, build_session
+from visitkorea.enums import MobileOS
+from visitkorea.exceptions import (
     TourApiAuthError,
     TourApiError,
     TourApiNoDataError,

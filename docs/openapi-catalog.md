@@ -15,7 +15,7 @@
 모든 서비스는 `TourApiHubClient`에서 호출할 수 있습니다.
 
 ```python
-from pykrtourapi import TourApiHubClient
+from visitkorea import TourApiHubClient
 
 hub = TourApiHubClient.from_env()  # 또는 TourApiHubClient("service-key")
 
@@ -80,7 +80,7 @@ Hub 응답의 `page.context`에는 `service_name`, `endpoint`, `request_params`,
 공식 활용신청 목록이나 메뉴얼 ZIP이 바뀌면 아래 순서로 갱신합니다.
 
 1. `.manuals/`에 새 메뉴얼을 내려받는다.
-2. `pykrtourapi/services.py`의 `SERVICE_DEFINITIONS`를 갱신한다.
+2. `src/visitkorea/services.py`의 `SERVICE_DEFINITIONS`를 갱신한다.
 3. `docs/openapi-catalog.md`의 service 표와 확인 기준일을 맞춘다.
 4. `tests/test_hub.py`의 카탈로그 개수, service key, operation routing 테스트를 갱신한다.
 5. 원본 ZIP/DOCX는 git에 올리지 않는다.

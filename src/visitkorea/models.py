@@ -6,8 +6,8 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Generic, TypeAlias, TypeVar
 
+from kraddr.base import PlaceCoordinate
 from pydantic import BaseModel, ConfigDict, Field
-from pykrtour import PlaceCoordinate
 
 RawRecord = Mapping[str, Any]
 T = TypeVar("T")

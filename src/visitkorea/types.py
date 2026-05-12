@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from datetime import date, datetime
 from typing import TypeAlias
 
-from pykrtour import PlaceCoordinate
+from kraddr.base import PlaceCoordinate
 
 from .enums import AreaCode, Arrange, ContentType, Language, MobileOS
 

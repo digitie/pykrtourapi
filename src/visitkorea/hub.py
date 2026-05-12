@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable, Iterator, Mapping
 from typing import Any, cast
 
-from pykrtour import PlaceCoordinate
+from kraddr.base import PlaceCoordinate
 
 from ._convert import enum_value, strip_or_none, to_int_or_none, without_none
 from ._http import SessionLike, TourApiHttp
@@ -27,7 +27,7 @@ class TourApiHubClient:
         service_key: str | None = None,
         *,
         mobile_os: MobileOS | str = MobileOS.ETC,
-        mobile_app: str = "pykrtourapi",
+        mobile_app: str = "visitkorea",
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 10.0,
         retries: int = 3,

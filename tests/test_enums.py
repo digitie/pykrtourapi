@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pykrtourapi import AreaCode, Arrange, ContentType, CoordinateInput, Language, MobileOS
-from pykrtourapi.client import KrTourApiClient
-from pykrtourapi.enums import area_code_label, content_type_label
+from visitkorea import AreaCode, Arrange, ContentType, CoordinateInput, Language, MobileOS
+from visitkorea.client import KrTourApiClient
+from visitkorea.enums import area_code_label, content_type_label
 
 from .conftest import FakeResponse, tour_payload
 

@@ -33,8 +33,8 @@ class SessionLike(Protocol):
 
 TRANSIENT_STATUSES = {429, 500, 502, 503, 504}
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (compatible; pykrtourapi/0.1; "
-    "+https://github.com/digitie/pykrtourapi)"
+    "Mozilla/5.0 (compatible; visitkorea/0.1; "
+    "+https://github.com/digitie/python-visitkorea-api)"
 )
 
 

@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from pykrtourapi.client import KrTourApiClient
+from visitkorea.client import KrTourApiClient
 
 
 class FakeResponse:

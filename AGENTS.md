@@ -12,7 +12,7 @@ This repository is a small typed Python package. Keep changes narrow, tested, an
 ## Module ownership
 
 ```text
-pykrtourapi/
+src/visitkorea/
 ├── client.py       # public client methods and response parsing
 ├── hub.py          # catalog-aware generic client for all official TourAPI services
 ├── services.py     # downloaded manual catalog distilled into service definitions
@@ -39,11 +39,11 @@ pykrtourapi/
 ## Verification commands
 
 ```bash
-python -m compileall pykrtourapi tests
+python -m compileall src/visitkorea tests
 python -m pytest
-python -m pytest --cov=pykrtourapi --cov-fail-under=90
+python -m pytest --cov=visitkorea --cov-fail-under=90
 ruff check .
-mypy pykrtourapi
+mypy src/visitkorea
 ```
 
 ## Documentation policy

@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator, Mapping
 from datetime import date, datetime
 from typing import Any, TypeVar
 
-from pykrtour import PlaceCoordinate
+from kraddr.base import PlaceCoordinate
 
 from ._convert import (
     enum_value,
@@ -54,7 +54,7 @@ class KrTourApiClient:
         language: Language | str = Language.KOREAN,
         service_name: str | None = None,
         mobile_os: MobileOS | str = MobileOS.ETC,
-        mobile_app: str = "pykrtourapi",
+        mobile_app: str = "visitkorea",
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 10.0,
         retries: int = 3,

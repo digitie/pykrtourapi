@@ -3,18 +3,18 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+from kraddr.base import PlaceCoordinate
 from pydantic import ValidationError
-from pykrtour import PlaceCoordinate
 
-from pykrtourapi import Wgs84Coordinate
-from pykrtourapi._convert import (
+from visitkorea import Wgs84Coordinate
+from visitkorea._convert import (
     strip_or_none,
     to_float_or_none,
     to_int_or_none,
     to_yyyymmdd,
     yn,
 )
-from pykrtourapi._time import parse_tour_datetime
+from visitkorea._time import parse_tour_datetime
 
 
 def test_strip_and_numeric_conversions():

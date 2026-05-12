@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from pykrtourapi.cli import main
-from pykrtourapi.models import Page
+from visitkorea.cli import main
+from visitkorea.models import Page
 
 
 class DummyClient:
@@ -42,7 +42,7 @@ class DummyClient:
 
 
 def test_cli_keyword(monkeypatch, capsys):
-    monkeypatch.setattr("pykrtourapi.cli.KrTourApiClient", DummyClient)
+    monkeypatch.setattr("visitkorea.cli.KrTourApiClient", DummyClient)
 
     assert main(["--service-key", "KEY", "keyword", "궁", "--content-type-id", "12"]) == 0
 
@@ -52,7 +52,7 @@ def test_cli_keyword(monkeypatch, capsys):
 
 
 def test_cli_other_commands(monkeypatch, capsys):
-    monkeypatch.setattr("pykrtourapi.cli.KrTourApiClient", DummyClient)
+    monkeypatch.setattr("visitkorea.cli.KrTourApiClient", DummyClient)
 
     assert main(["--service-key", "KEY", "location", "--map-x", "1", "--map-y", "2"]) == 0
     assert '"radius": "1000"' in capsys.readouterr().out

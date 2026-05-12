@@ -6,10 +6,12 @@
 - Added `docs/user-guide.md` as the primary library usage guide.
 - Added `docs/pydantic-models.md` for Pydantic v2 serialization, JSON schema, frozen models, and `raw` preservation.
 - Added documentation guardrails for local markdown links and public model usage.
+- Replaced the `pykrtour` dependency with local `python-kraddr-base` and `kraddr.base.PlaceCoordinate`.
+- Renamed the distribution to `python-visitkorea-api`, moved code to `src/visitkorea`, and switched public imports/CLI defaults to `visitkorea`.
 
 ## 0.1.0
 
-- Initial `pykrtourapi` package scaffold.
+- Initial `visitkorea` package scaffold.
 - Added `KrTourApiClient` for Korea Tourism Organization TourAPI `KorService2`.
 - Added list/search/detail/image/sync/code lookup methods.
 - Added typed response models and exception hierarchy.
