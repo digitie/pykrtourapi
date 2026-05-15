@@ -43,7 +43,15 @@ PowerShell:
 $env:KTO_SERVICE_KEY="발급받은_decoding_인증키"
 ```
 
-대체 환경변수로 `KRTOURAPI_SERVICE_KEY`, `TOURAPI_SERVICE_KEY`도 읽습니다.
+대체 환경변수로 `KTO_DATA_GO_KR_SERVICE_KEY`, `DATA_GO_KR_SERVICE_KEY`, `DATA_GOKR_SERVICE_KEY`, `KRTOURAPI_SERVICE_KEY`, `TOURAPI_SERVICE_KEY`도 읽습니다. 복사/붙여넣기 중 들어간 공백, 줄바꿈, 탭은 요청 전에 자동 제거합니다.
+
+환경변수가 없으면 현재 작업 디렉터리나 상위 디렉터리의 `.env`에서 같은 이름을 읽습니다.
+
+```bash
+KTO_DATA_GO_KR_SERVICE_KEY=발급받은_decoding_인증키
+```
+
+`api.visitkorea.or.kr` 쪽 키가 별도로 필요한 도구에서는 `VISITKOREA_API_SERVICE_KEY`, `API_VISITKOREA_SERVICE_KEY`, `KTO_VISITKOREA_SERVICE_KEY`를 사용할 수 있습니다.
 
 로컬 live test를 돌릴 때는 저장소에 커밋되지 않는 `.env.local`을 사용할 수 있습니다.
 
@@ -122,6 +130,15 @@ related = hub.related_tour.area_based_list(
 ```
 
 `page_no`, `num_of_rows`, `content_id`, `content_type_id`, `coordinate`는 Python식 이름으로 넘길 수 있고, 내부에서 TourAPI 원문 파라미터로 변환됩니다. 전체 서비스 key와 operation 목록은 [docs/openapi-catalog.md](docs/openapi-catalog.md)에 정리되어 있습니다.
+
+디버그 UI나 내부 도구에서 전체 API 목록이 필요하면 `get_api_catalog()`를 사용합니다. 각 행에는 사람이 읽을 수 있는 `dataset_name`, `operation`, `service_key_apply_url`, `manual_url`, `data_source`, `service_key_env_names`가 들어 있습니다.
+
+```python
+from visitkorea import get_api_catalog
+
+for row in get_api_catalog():
+    print(row["dataset_name"], row["operation"], row["service_key_apply_url"])
+```
 
 `related_tour`의 `area_based_list()`와 `search_keyword()`는 `Page[RelatedTourItem]`을 반환하는 typed helper입니다. 기존 generic `hub.call("related_tour", ...)` 경로는 원래처럼 `Page[Mapping]`을 반환합니다.
 
@@ -257,6 +274,13 @@ mypy src/visitkorea
 ```
 
 기본 테스트는 실제 TourAPI를 호출하지 않습니다. live test는 `@pytest.mark.live`로 분리하고, `KTO_SERVICE_KEY`가 없으면 skip합니다.
+
+Streamlit 디버그 UI는 선택 기능입니다.
+
+```bash
+pip install -e ".[debug-ui]"
+streamlit run debug_ui/app.py
+```
 
 ## 문서
 

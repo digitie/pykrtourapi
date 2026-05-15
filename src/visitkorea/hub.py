@@ -3,20 +3,21 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from typing import Any, cast
 
 from kraddr.base import PlaceCoordinate
 
+from ._auth import DEFAULT_SERVICE_KEY_SOURCE, resolve_service_key
 from ._convert import enum_value, strip_or_none, to_int_or_none, without_none
 from ._http import SessionLike, TourApiHttp
 from ._pagination import iter_paginated_pages
 from ._provenance import call_context
-from .client import DEFAULT_BASE_URL, DEFAULT_ENV_NAMES, _extract_items, _first_env
+from .client import DEFAULT_BASE_URL, DEFAULT_ENV_NAMES, _extract_items
 from .enums import MobileOS
 from .exceptions import TourApiAuthError, TourApiRequestError
 from .models import Page, RawRecord, RelatedTourItem
-from .services import SERVICE_BY_KEY, SERVICE_DEFINITIONS, ServiceDefinition
+from .services import SERVICE_BY_KEY, SERVICE_DEFINITIONS, ServiceDefinition, get_api_catalog
 
 
 class TourApiHubClient:
@@ -32,11 +33,16 @@ class TourApiHubClient:
         timeout: float = 10.0,
         retries: int = 3,
         session: SessionLike | None = None,
+        service_key_source: str = DEFAULT_SERVICE_KEY_SOURCE,
     ) -> None:
-        key = service_key or _first_env(DEFAULT_ENV_NAMES)
+        key = resolve_service_key(
+            service_key,
+            source=service_key_source,
+            env_names=DEFAULT_ENV_NAMES,
+        )
         if not key:
             raise TourApiAuthError(
-                "service_key is required. Pass service_key=... or set KTO_SERVICE_KEY."
+                "service_key is required. Pass service_key=... or set KTO_DATA_GO_KR_SERVICE_KEY."
             )
         self.service_key = key
         self.mobile_os = str(enum_value(mobile_os))
@@ -49,14 +55,26 @@ class TourApiHubClient:
     @classmethod
     def from_env(
         cls,
-        name: str = "KTO_SERVICE_KEY",
+        name: str = "KTO_DATA_GO_KR_SERVICE_KEY",
         *,
-        fallback_names: tuple[str, ...] = ("KRTOURAPI_SERVICE_KEY", "TOURAPI_SERVICE_KEY"),
+        fallback_names: tuple[str, ...] = (
+            "DATA_GO_KR_SERVICE_KEY",
+            "DATA_GOKR_SERVICE_KEY",
+            "KTO_SERVICE_KEY",
+            "KRTOURAPI_SERVICE_KEY",
+            "TOURAPI_SERVICE_KEY",
+        ),
+        service_key_source: str = DEFAULT_SERVICE_KEY_SOURCE,
+        env_file_paths: Iterable[str] | None = None,
         **kwargs: Any,
     ) -> TourApiHubClient:
         """Create a catalog-aware client from environment variables."""
 
-        service_key = _first_env((name, *fallback_names))
+        service_key = resolve_service_key(
+            source=service_key_source,
+            env_names=(name, *fallback_names),
+            env_file_paths=env_file_paths,
+        )
         if not service_key:
             names = ", ".join((name, *fallback_names))
             raise TourApiAuthError(f"none of these environment variables are set: {names}")
@@ -67,6 +85,11 @@ class TourApiHubClient:
         """Return the official service catalog bundled with the package."""
 
         return SERVICE_DEFINITIONS
+
+    def catalog(self) -> tuple[dict[str, Any], ...]:
+        """Return UI-friendly service and operation catalog rows."""
+
+        return get_api_catalog()
 
     def service(self, key: str) -> TourApiServiceClient:
         """Return a service-specific generic client by key, service name, or alias."""

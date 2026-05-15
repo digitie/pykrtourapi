@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
+
+from ._auth import DEFAULT_SERVICE_KEY_SOURCE, service_key_env_names
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +26,12 @@ class ServiceDefinition:
     @property
     def manual_url(self) -> str:
         return f"https://api.visitkorea.or.kr{self.manual_path}"
+
+    @property
+    def dataset_name(self) -> str:
+        """Human-readable dataset name shown on data.go.kr."""
+
+        return self.title
 
 
 SERVICE_DEFINITIONS: Final[tuple[ServiceDefinition, ...]] = (
@@ -532,3 +541,48 @@ SERVICE_BY_KEY: Final[dict[str, ServiceDefinition]] = {
     for service in SERVICE_DEFINITIONS
     for alias in (service.key, service.service_name, *service.aliases)
 }
+
+
+def get_api_catalog(*, include_operations: bool = True) -> tuple[dict[str, Any], ...]:
+    """Return a UI-friendly catalog for every bundled TourAPI dataset.
+
+    Each row includes the human-readable dataset name, service-key application URL,
+    manual URL, and operation metadata. The result contains no credentials and can be
+    shown directly in a debug UI.
+    """
+
+    rows: list[dict[str, Any]] = []
+    env_names = service_key_env_names(DEFAULT_SERVICE_KEY_SOURCE)
+    for service in SERVICE_DEFINITIONS:
+        operations: tuple[str | None, ...] = service.operations if include_operations else (None,)
+        for operation in operations:
+            rows.append(
+                {
+                    "service_id": service.key,
+                    "dataset_name": service.dataset_name,
+                    "service_name": service.service_name,
+                    "operation": operation,
+                    "operation_alias": _operation_alias(operation) if operation else None,
+                    "category": service.category,
+                    "description": service.description,
+                    "data_source": "data.go.kr",
+                    "catalog_source": "api.visitkorea.or.kr",
+                    "service_key_source": DEFAULT_SERVICE_KEY_SOURCE,
+                    "service_key_env_names": env_names,
+                    "service_key_apply_url": service.apply_url,
+                    "manual_url": service.manual_url,
+                }
+            )
+    return tuple(rows)
+
+
+def get_service_catalog() -> tuple[dict[str, Any], ...]:
+    """Return one catalog row per dataset instead of one row per operation."""
+
+    return get_api_catalog(include_operations=False)
+
+
+def _operation_alias(operation: str) -> str:
+    value = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", operation)
+    value = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", value)
+    return re.sub(r"_?\d+$", "", value.replace("__", "_").lower())

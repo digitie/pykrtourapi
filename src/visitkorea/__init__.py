@@ -2,6 +2,14 @@
 
 from kraddr.base import PlaceCoordinate
 
+from ._auth import (
+    ServiceKeySource,
+    normalize_service_key,
+    resolve_service_key,
+    service_key_env_names,
+    service_key_source,
+    service_key_sources,
+)
 from .client import KrTourApiClient, TourApiClient
 from .display import CopyrightDisplayInfo, clean_tourapi_html, copyright_display_info
 from .enums import (
@@ -36,7 +44,13 @@ from .models import (
     TourItem,
     Wgs84Coordinate,
 )
-from .services import SERVICE_BY_KEY, SERVICE_DEFINITIONS, ServiceDefinition
+from .services import (
+    SERVICE_BY_KEY,
+    SERVICE_DEFINITIONS,
+    ServiceDefinition,
+    get_api_catalog,
+    get_service_catalog,
+)
 from .types import (
     AreaCodeInput,
     AreaCodeValue,
@@ -84,6 +98,7 @@ __all__ = [
     "RelatedTourServiceClient",
     "RepeatInfo",
     "ServiceKey",
+    "ServiceKeySource",
     "SigunguCodeValue",
     "TourApiAuthError",
     "TourApiCallContext",
@@ -108,4 +123,11 @@ __all__ = [
     "clean_tourapi_html",
     "content_type_label",
     "copyright_display_info",
+    "get_api_catalog",
+    "get_service_catalog",
+    "normalize_service_key",
+    "resolve_service_key",
+    "service_key_env_names",
+    "service_key_source",
+    "service_key_sources",
 ]

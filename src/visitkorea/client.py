@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from datetime import date, datetime
 from typing import Any, TypeVar
 
 from kraddr.base import PlaceCoordinate
 
+from ._auth import DATA_GO_KR_ENV_NAMES, DEFAULT_SERVICE_KEY_SOURCE, resolve_service_key
 from ._convert import (
     enum_value,
     strip_or_none,
@@ -35,7 +35,7 @@ from .models import (
 )
 
 DEFAULT_BASE_URL = "http://apis.data.go.kr/B551011"
-DEFAULT_ENV_NAMES = ("KTO_SERVICE_KEY", "KRTOURAPI_SERVICE_KEY", "TOURAPI_SERVICE_KEY")
+DEFAULT_ENV_NAMES = DATA_GO_KR_ENV_NAMES
 T = TypeVar("T")
 
 
@@ -59,11 +59,16 @@ class KrTourApiClient:
         timeout: float = 10.0,
         retries: int = 3,
         session: SessionLike | None = None,
+        service_key_source: str = DEFAULT_SERVICE_KEY_SOURCE,
     ) -> None:
-        key = service_key or _first_env(DEFAULT_ENV_NAMES)
+        key = resolve_service_key(
+            service_key,
+            source=service_key_source,
+            env_names=DEFAULT_ENV_NAMES,
+        )
         if not key:
             raise TourApiAuthError(
-                "service_key is required. Pass service_key=... or set KTO_SERVICE_KEY."
+                "service_key is required. Pass service_key=... or set KTO_DATA_GO_KR_SERVICE_KEY."
             )
         resolved_service_name = service_name or _service_name_for_language(language)
         self.service_key = key
@@ -86,14 +91,26 @@ class KrTourApiClient:
     @classmethod
     def from_env(
         cls,
-        name: str = "KTO_SERVICE_KEY",
+        name: str = "KTO_DATA_GO_KR_SERVICE_KEY",
         *,
-        fallback_names: tuple[str, ...] = ("KRTOURAPI_SERVICE_KEY", "TOURAPI_SERVICE_KEY"),
+        fallback_names: tuple[str, ...] = (
+            "DATA_GO_KR_SERVICE_KEY",
+            "DATA_GOKR_SERVICE_KEY",
+            "KTO_SERVICE_KEY",
+            "KRTOURAPI_SERVICE_KEY",
+            "TOURAPI_SERVICE_KEY",
+        ),
+        service_key_source: str = DEFAULT_SERVICE_KEY_SOURCE,
+        env_file_paths: Iterable[str] | None = None,
         **kwargs: Any,
     ) -> KrTourApiClient:
         """Create a client from environment variables."""
 
-        service_key = os.getenv(name) or _first_env(fallback_names)
+        service_key = resolve_service_key(
+            source=service_key_source,
+            env_names=(name, *fallback_names),
+            env_file_paths=env_file_paths,
+        )
         if not service_key:
             names = ", ".join((name, *fallback_names))
             raise TourApiAuthError(f"none of these environment variables are set: {names}")
@@ -631,11 +648,7 @@ TourApiClient = KrTourApiClient
 
 
 def _first_env(names: tuple[str, ...]) -> str | None:
-    for name in names:
-        value = os.getenv(name)
-        if value:
-            return value
-    return None
+    return resolve_service_key(source=DEFAULT_SERVICE_KEY_SOURCE, env_names=names)
 
 
 def _service_name_for_language(language: Language | str) -> str:

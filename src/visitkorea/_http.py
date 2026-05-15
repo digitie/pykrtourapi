@@ -10,6 +10,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from ._auth import normalize_service_key
 from ._convert import without_none
 from .exceptions import (
     TourApiAuthError,
@@ -76,9 +77,10 @@ class TourApiHttp:
         timeout: float = 10.0,
         retries: int = 3,
     ) -> None:
-        if not service_key:
+        normalized_key = normalize_service_key(service_key)
+        if not normalized_key:
             raise TourApiAuthError("service_key is required", failure_kind="auth")
-        self.service_key = service_key
+        self.service_key = normalized_key
         self.base_url = base_url.rstrip("/")
         self.service_name = service_name.strip("/")
         self.mobile_os = mobile_os
@@ -132,13 +134,16 @@ def tourapi_request_params(
     """Return the full request params sent to TourAPI."""
 
     request_params: dict[str, Any] = {
-        "serviceKey": service_key,
+        "serviceKey": normalize_service_key(service_key) or service_key,
         "MobileOS": mobile_os,
         "MobileApp": mobile_app,
         "_type": "json",
     }
     if params:
         request_params.update(dict(params))
+    for key, value in tuple(request_params.items()):
+        if _is_service_key_param(key):
+            request_params[key] = normalize_service_key(value)
     return request_params
 
 

@@ -6,7 +6,7 @@ import pytest
 from kraddr.base import PlaceCoordinate
 from pydantic import ValidationError
 
-from visitkorea import Page
+from visitkorea import Page, resolve_service_key
 from visitkorea.client import KrTourApiClient
 from visitkorea.enums import AreaCode, Arrange, ContentType, Language
 from visitkorea.exceptions import TourApiAuthError, TourApiNoDataError, TourApiRequestError
@@ -412,3 +412,26 @@ def test_env_and_language_errors(monkeypatch, fake_client_factory):
     env_client.area_codes()
     assert client.service_key == "TEST_KEY"
     assert session.calls[0]["params"]["serviceKey"] == "ENV_KEY"
+
+
+def test_dotenv_service_key_lookup_is_source_specific(monkeypatch, tmp_path):
+    monkeypatch.delenv("KTO_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("KRTOURAPI_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("TOURAPI_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("KTO_DATA_GO_KR_SERVICE_KEY", raising=False)
+    monkeypatch.delenv("VISITKOREA_API_SERVICE_KEY", raising=False)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text(
+        "\n".join(
+            [
+                'KTO_DATA_GO_KR_SERVICE_KEY=" DATA_KEY "',
+                "VISITKOREA_API_SERVICE_KEY= API_KEY ",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    client = KrTourApiClient.from_env(session=FakeSession([]))
+
+    assert client.service_key == "DATA_KEY"
+    assert resolve_service_key(source="api.visitkorea") == "API_KEY"

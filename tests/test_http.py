@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from visitkorea._http import DEFAULT_USER_AGENT, TourApiHttp, build_session
+from visitkorea._http import DEFAULT_USER_AGENT, TourApiHttp, build_session, tourapi_request_params
+from visitkorea.client import KrTourApiClient
 from visitkorea.enums import MobileOS
 from visitkorea.exceptions import (
     TourApiAuthError,
@@ -14,7 +15,7 @@ from visitkorea.exceptions import (
     TourApiServerError,
 )
 
-from .conftest import FakeResponse, tour_payload
+from .conftest import FakeResponse, FakeSession, tour_payload
 
 
 def assert_error_metadata(
@@ -56,6 +57,24 @@ def test_common_request_params_and_endpoint_url(fake_client_factory):
     assert call["params"]["_type"] == "json"
     assert call["params"]["pageNo"] == 1
     assert "areaCode" not in call["params"]
+
+
+def test_service_key_whitespace_is_removed_before_request():
+    session = FakeSession([FakeResponse(tour_payload([]))])
+    client = KrTourApiClient(" \n TEST\t_KEY \r\n", session=session)
+
+    client.area_codes()
+
+    assert client.service_key == "TEST_KEY"
+    assert session.calls[0]["params"]["serviceKey"] == "TEST_KEY"
+
+    params = tourapi_request_params(
+        service_key=" A B\nC ",
+        mobile_os="WEB",
+        mobile_app="UnitTest",
+        params={"serviceKey": " X\tY "},
+    )
+    assert params["serviceKey"] == "XY"
 
 
 def test_non_json_xml_service_key_error_maps_to_auth(fake_client_factory):

@@ -9,6 +9,9 @@ from visitkorea import (
     RelatedTourItem,
     RelatedTourServiceClient,
     TourApiHubClient,
+    get_api_catalog,
+    get_service_catalog,
+    service_key_env_names,
 )
 from visitkorea.exceptions import TourApiRequestError
 
@@ -77,6 +80,30 @@ def test_catalog_contains_all_manual_services():
         service.manual_url.startswith("https://api.visitkorea.or.kr/")
         for service in SERVICE_DEFINITIONS
     )
+
+
+def test_api_catalog_rows_include_dataset_name_and_key_links():
+    rows = get_api_catalog()
+    kor_keyword = next(
+        row
+        for row in rows
+        if row["service_id"] == "kor" and row["operation"] == "searchKeyword2"
+    )
+
+    assert len(rows) == 211
+    assert kor_keyword["dataset_name"] == "한국관광공사_국문 관광정보 서비스"
+    assert kor_keyword["operation_alias"] == "search_keyword"
+    assert kor_keyword["data_source"] == "data.go.kr"
+    assert kor_keyword["catalog_source"] == "api.visitkorea.or.kr"
+    assert kor_keyword["service_key_source"] == "data.go.kr"
+    assert kor_keyword["service_key_apply_url"].startswith("https://www.data.go.kr/")
+    assert kor_keyword["manual_url"].startswith("https://api.visitkorea.or.kr/")
+    assert "KTO_DATA_GO_KR_SERVICE_KEY" in kor_keyword["service_key_env_names"]
+
+    service_rows = get_service_catalog()
+    assert len(service_rows) == 27
+    assert service_rows[0]["operation"] is None
+    assert service_key_env_names("api.visitkorea")[0] == "VISITKOREA_API_SERVICE_KEY"
 
 
 def test_all_catalog_operations_are_routable_without_live_api_calls():

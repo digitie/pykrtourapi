@@ -12,6 +12,26 @@
 
 **가드레일:** HTTP 테스트가 `serviceKey`를 query param으로 그대로 넘기는지 확인한다.
 
+## 서비스키 복사/붙여넣기 공백을 그대로 보내기
+
+**실수:** 포털 화면이나 메모장에서 복사한 서비스키 앞뒤 공백, 줄바꿈, 탭을 그대로 `serviceKey`에 넣는다.
+
+**증상:** 키 자체는 맞는데도 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` 또는 인증 실패가 난다.
+
+**규칙:** 라이브러리 경계에서 `normalize_service_key()`로 모든 공백 문자를 제거한 뒤 요청한다. 명시 인자, 환경변수, `.env` 파일 값, 직접 전달된 `serviceKey` 파라미터 모두 같은 규칙을 적용한다.
+
+**가드레일:** `test_service_key_whitespace_is_removed_before_request`.
+
+## 데이터소스별 서비스키를 같은 환경변수로만 처리하기
+
+**실수:** `data.go.kr` 호출 키와 `api.visitkorea.or.kr` 쪽 도구 키를 같은 값으로 가정한다.
+
+**증상:** 디버그 UI나 보조 도구에서 다른 데이터소스 키가 필요한데 기존 `KTO_SERVICE_KEY`만 읽어 잘못된 키를 보낸다.
+
+**규칙:** 기본 TourAPI 호출은 `data.go.kr` 키 소스를 쓰고, 도구에서 별도 키가 필요하면 `api.visitkorea` 키 소스를 명시한다. 환경변수가 없으면 로컬 `.env`에서 같은 이름을 읽는다.
+
+**가드레일:** `test_dotenv_service_key_lookup_is_source_specific`, `test_api_catalog_rows_include_dataset_name_and_key_links`.
+
 ## JSON 요청이어도 XML 오류가 올 수 있음
 
 **실수:** `_type=json`이면 모든 응답이 JSON이라고 가정한다.
